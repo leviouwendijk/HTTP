@@ -82,7 +82,7 @@ public struct HTTPStatus: Hashable, Sendable, Equatable {
     public static let networkAuthenticationRequired = HTTPStatus(code: 511, reason: "Network Authentication Required")
     
     // Default Fallbacks
-    internal static func defaultFor(code: Int) -> HTTPStatus {
+    public static func defaultFor(code: Int) -> HTTPStatus {
         switch code {
         case 100..<200: return HTTPStatus(code: code, reason: "Informational")
         case 200..<300: return HTTPStatus(code: code, reason: "Success")
