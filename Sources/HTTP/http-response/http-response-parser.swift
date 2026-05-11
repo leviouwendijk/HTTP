@@ -13,6 +13,7 @@ public struct HTTPResponseParser {
         let head = String(
             raw[..<separatorRange.lowerBound]
         )
+
         let body = String(
             raw[separatorRange.upperBound...]
         )
@@ -31,6 +32,7 @@ public struct HTTPResponseParser {
         let status = try parseStatus(
             from: statusLine
         )
+
         let headers = try parseHeaders(
             from: headLines.dropFirst()
         )
@@ -53,10 +55,14 @@ public struct HTTPResponseParser {
 
         guard
             parts.count >= 2,
-            let code = Int(parts[1])
+            String(parts[0]) == HTTPConstants.httpVersion
         else {
-            throw HTTPParsingError.invalidStatusLine(
-                line
+            throw HTTPParsingError.invalidStatusLine(line)
+        }
+
+        guard let code = Int(parts[1]) else {
+            throw HTTPParsingError.invalidStatusCode(
+                String(parts[1])
             )
         }
 
@@ -69,33 +75,50 @@ public struct HTTPResponseParser {
         from lines: ArraySlice<String>
     ) throws -> [String: String] {
         var headers: [String: String] = [:]
+        var seenContentLength = false
 
         for line in lines {
             guard !line.isEmpty else {
                 continue
             }
 
-            guard let index = line.firstIndex(
+            guard let separatorIndex = line.firstIndex(
                 of: Character(HTTPConstants.headerSeparator)
             ) else {
                 throw HTTPParsingError.malformedHeaders
             }
 
-            let key = String(
-                line[..<index]
+            let name = String(
+                line[..<separatorIndex]
             )
             .trimmingCharacters(
                 in: .whitespaces
             )
 
             let value = String(
-                line[line.index(after: index)...]
+                line[line.index(after: separatorIndex)...]
             )
             .trimmingCharacters(
                 in: .whitespaces
             )
 
-            headers[key] = value
+            let lowercasedName = name.lowercased()
+
+            try HTTPWireValidation.validateHeader(
+                name: name,
+                value: value
+            )
+
+            if lowercasedName == HTTPConstants.contentLengthHeader.lowercased() {
+                guard !seenContentLength else {
+                    throw HTTPParsingError.duplicateHeader(name)
+                }
+
+                _ = try HTTPFraming.parseContentLengthValue(value)
+                seenContentLength = true
+            }
+
+            headers[name] = value
         }
 
         return headers
@@ -104,38 +127,9 @@ public struct HTTPResponseParser {
     public static func extractContentLength(
         from headerData: Data
     ) -> Int? {
-        guard let text = String(
-            data: headerData,
-            encoding: .utf8
-        ) else {
-            return nil
-        }
-
-        let lines = text.components(
-            separatedBy: HTTPConstants.crlf
+        try? HTTPFraming.extractContentLength(
+            from: headerData
         )
-
-        for line in lines {
-            let lowercasedLine = line.lowercased()
-
-            if lowercasedLine.hasPrefix("content-length:") {
-                let parts = line.split(
-                    separator: ":",
-                    maxSplits: 1,
-                    omittingEmptySubsequences: true
-                )
-
-                if parts.count > 1 {
-                    let value = parts[1].trimmingCharacters(
-                        in: .whitespaces
-                    )
-
-                    return Int(value)
-                }
-            }
-        }
-
-        return nil
     }
 }
 
