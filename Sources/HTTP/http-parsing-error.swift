@@ -9,6 +9,7 @@ public enum HTTPParsingError: Error, LocalizedError, Sendable, Equatable {
     case malformedHeaders
     case duplicateHeader(String)
     case invalidContentLength(String)
+    case contentLengthTooLarge(value: String, maximumBytes: Int)
     case conflictingContentLength([Int])
     case incompleteRequest
     case incompleteResponse
@@ -38,6 +39,9 @@ public enum HTTPParsingError: Error, LocalizedError, Sendable, Equatable {
 
         case .invalidContentLength(let value):
             return "Invalid Content-Length: \(value)"
+
+        case .contentLengthTooLarge(let value, let maximumBytes):
+            return "Content-Length exceeds configured maximum: \(value) > \(maximumBytes)"
 
         case .conflictingContentLength(let values):
             return "Conflicting Content-Length values: \(values)"

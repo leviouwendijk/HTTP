@@ -271,14 +271,20 @@ public enum HTTPFraming {
             guard digit <= maximum,
                   value <= (maximum - digit) / 10
             else {
-                throw HTTPParsingError.invalidContentLength(rawValue)
+                throw HTTPParsingError.contentLengthTooLarge(
+                    value: rawValue,
+                    maximumBytes: policy.maximumBytes
+                )
             }
 
             value = (value * 10) + digit
         }
 
         guard value <= maximum else {
-            throw HTTPParsingError.invalidContentLength(rawValue)
+            throw HTTPParsingError.contentLengthTooLarge(
+                value: rawValue,
+                maximumBytes: policy.maximumBytes
+            )
         }
 
         return Int(value)
