@@ -2,7 +2,9 @@ import Foundation
 
 public struct HTTPRequestParser {
     public static func parse(
-        _ raw: String
+        _ raw: String,
+        headerPolicy: HTTPHeaderPolicy = .requestDefault,
+        requestTargetPolicy: HTTPRequestTargetPolicy = .default
     ) throws -> HTTPRequest {
         guard let separatorRange = raw.range(
             of: HTTPConstants.crlfCrLf
@@ -13,6 +15,12 @@ public struct HTTPRequestParser {
         let head = String(
             raw[..<separatorRange.lowerBound]
         )
+
+        guard head.utf8.count <= headerPolicy.maximumHeaderBytes else {
+            throw HTTPParsingError.headerSectionTooLarge(
+                maximumBytes: headerPolicy.maximumHeaderBytes
+            )
+        }
 
         let body = String(
             raw[separatorRange.upperBound...]
@@ -30,11 +38,13 @@ public struct HTTPRequestParser {
         }
 
         let parsedLine = try parseRequestLine(
-            from: requestLine
+            from: requestLine,
+            requestTargetPolicy: requestTargetPolicy
         )
 
         let headers = try parseHeaders(
-            from: headLines.dropFirst()
+            from: headLines.dropFirst(),
+            policy: headerPolicy
         )
 
         return HTTPRequest(
@@ -46,7 +56,8 @@ public struct HTTPRequestParser {
     }
 
     private static func parseRequestLine(
-        from line: String
+        from line: String,
+        requestTargetPolicy: HTTPRequestTargetPolicy
     ) throws -> (method: HTTPMethod, path: String) {
         let parts = line.split(
             separator: " ",
@@ -71,28 +82,42 @@ public struct HTTPRequestParser {
 
         do {
             try HTTPWireValidation.validateRequestTarget(path)
+            try requestTargetPolicy.validate(path)
+        } catch let error as HTTPParsingError {
+            throw error
         } catch {
             throw HTTPParsingError.invalidRequestLine(line)
         }
 
-        return (method, path)
+        return (
+            method,
+            path
+        )
     }
 
     private static func parseHeaders(
-        from lines: ArraySlice<String>
-    ) throws -> [String: String] {
-        var headers: [String: String] = [:]
+        from lines: ArraySlice<String>,
+        policy: HTTPHeaderPolicy
+    ) throws -> HTTPHeaders {
+        let nonEmptyLines = lines.filter {
+            !$0.isEmpty
+        }
+
+        guard nonEmptyLines.count <= policy.maximumHeaderCount else {
+            throw HTTPParsingError.tooManyHeaders(
+                maximumCount: policy.maximumHeaderCount
+            )
+        }
+
+        var headers = HTTPHeaders()
         var seenSingletonHeaders = Set<String>()
 
-        let singletonHeaders: Set<String> = [
-            "host",
-            HTTPConstants.authorizationHeader.lowercased(),
-            HTTPConstants.contentLengthHeader.lowercased(),
-        ]
-
-        for line in lines {
-            guard !line.isEmpty else {
-                continue
+        for line in nonEmptyLines {
+            guard line.utf8.count <= policy.maximumHeaderLineBytes else {
+                throw HTTPParsingError.headerLineTooLarge(
+                    name: nil,
+                    maximumBytes: policy.maximumHeaderLineBytes
+                )
             }
 
             guard let separatorIndex = line.firstIndex(
@@ -122,11 +147,23 @@ public struct HTTPRequestParser {
                 value: value
             )
 
+            guard line.utf8.count <= policy.maximumHeaderLineBytes else {
+                throw HTTPParsingError.headerLineTooLarge(
+                    name: name,
+                    maximumBytes: policy.maximumHeaderLineBytes
+                )
+            }
+
+            if lowercasedName == "transfer-encoding",
+               policy.rejectTransferEncoding {
+                throw HTTPParsingError.forbiddenHeader(name)
+            }
+
             if lowercasedName == HTTPConstants.contentLengthHeader.lowercased() {
                 _ = try HTTPFraming.parseContentLengthValue(value)
             }
 
-            if singletonHeaders.contains(lowercasedName) {
+            if policy.singletonHeaderNames.contains(lowercasedName) {
                 guard !seenSingletonHeaders.contains(lowercasedName) else {
                     throw HTTPParsingError.duplicateHeader(name)
                 }
@@ -134,7 +171,10 @@ public struct HTTPRequestParser {
                 seenSingletonHeaders.insert(lowercasedName)
             }
 
-            headers[name] = value
+            headers.append(
+                name,
+                value
+            )
         }
 
         return headers
