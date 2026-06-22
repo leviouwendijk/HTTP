@@ -3,12 +3,12 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-05-11T20:50:50Z",
-  "passed" : 5,
+  "generated_at" : "2026-06-22T11:30:02Z",
+  "passed" : 6,
   "results" : [
     {
       "display_name" : "HTTPRequestParser preserves ordinary request parsing behavior",
-      "duration_seconds" : 0.0010100603103637695,
+      "duration_seconds" : 0.0025800466537475586,
       "name" : "http.request-parser.regression",
       "status" : "passed",
       "tags" : [
@@ -21,7 +21,7 @@
     },
     {
       "display_name" : "HTTPResponseParser preserves ordinary response parsing behavior",
-      "duration_seconds" : 0.00033795833587646484,
+      "duration_seconds" : 0.002333998680114746,
       "name" : "http.response-parser.regression",
       "status" : "passed",
       "tags" : [
@@ -34,7 +34,7 @@
     },
     {
       "display_name" : "HTTPResponseBuilder preserves ordinary wire serialization behavior",
-      "duration_seconds" : 0.00022101402282714844,
+      "duration_seconds" : 0.0007139444351196289,
       "name" : "http.response-builder.regression",
       "status" : "passed",
       "tags" : [
@@ -47,7 +47,7 @@
     },
     {
       "display_name" : "HTTP request and response header access remains case-insensitive",
-      "duration_seconds" : 0.00014209747314453125,
+      "duration_seconds" : 0.0004029273986816406,
       "name" : "http.header-access.regression",
       "status" : "passed",
       "tags" : [
@@ -59,7 +59,7 @@
     },
     {
       "display_name" : "HTTPResponse constructors preserve content type and status behavior",
-      "duration_seconds" : 0.0002830028533935547,
+      "duration_seconds" : 0.0007790327072143555,
       "name" : "http.response-constructors.regression",
       "status" : "passed",
       "tags" : [
@@ -68,9 +68,23 @@
         "regression",
         "response"
       ]
+    },
+    {
+      "display_name" : "HTTPRequest parses trusted forwarded client IP headers",
+      "duration_seconds" : 0.0009310245513916016,
+      "name" : "http.client-ip.regression",
+      "status" : "passed",
+      "tags" : [
+        "client-ip",
+        "forwarded",
+        "headers",
+        "http",
+        "regression",
+        "request"
+      ]
     }
   ],
   "skipped" : 0,
   "title" : "HTTP Test Flows",
-  "total" : 5
+  "total" : 6
 }
