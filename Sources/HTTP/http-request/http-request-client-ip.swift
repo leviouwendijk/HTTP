@@ -5,7 +5,38 @@ public enum HTTPClientIPSource: Sendable {
     case trustedForwardedHeaders
 }
 
+public struct HTTPClientContext: Sendable, Hashable {
+    public let ip: Prebuilt.ForwardedClientIP
+    public let requestID: String?
+    public let userAgent: String?
+
+    public var ipValue: String {
+        ip.rawValue
+    }
+
+    public init(
+        ip: Prebuilt.ForwardedClientIP,
+        requestID: String?,
+        userAgent: String?
+    ) {
+        self.ip = ip
+        self.requestID = requestID
+        self.userAgent = userAgent
+    }
+}
+
 extension HTTPRequest {
+    /// client context
+    public func client(
+        from source: HTTPClientIPSource = .trustedForwardedHeaders
+    ) throws -> HTTPClientContext {
+        HTTPClientContext(
+            ip: try parseClientIP(from: source),
+            requestID: header("X-Request-ID"),
+            userAgent: header("User-Agent")
+        )
+    }
+
     /// Safe-by-default client IP.
     ///
     /// There is no peer socket address on HTTPRequest, and forwarding headers
