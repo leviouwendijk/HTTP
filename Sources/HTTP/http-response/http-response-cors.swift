@@ -69,6 +69,59 @@ public struct CORS: Sendable {
         self.config = config
     }
 
+    private func mergeVary(
+        _ value: String,
+        into headers: inout HTTPHeaders
+    ) {
+        let values = headers.values(
+            for: "Vary"
+        ) + [
+            value
+        ]
+
+        let tokens = values.flatMap { value in
+            value
+                .split(
+                    separator: ","
+                )
+                .map {
+                    String($0).trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+                }
+        }
+
+        if tokens.contains(
+            "*"
+        ) {
+            headers["Vary"] = "*"
+            return
+        }
+
+        var seen: Set<String> = []
+        var merged: [String] = []
+
+        for token in tokens {
+            guard !token.isEmpty else {
+                continue
+            }
+
+            guard seen.insert(
+                token.lowercased()
+            ).inserted else {
+                continue
+            }
+
+            merged.append(
+                token
+            )
+        }
+
+        headers["Vary"] = merged.joined(
+            separator: ", "
+        )
+    }
+
     public func preflightResponse(
         for request: HTTPRequest
     ) -> HTTPResponse? {
@@ -128,7 +181,12 @@ public struct CORS: Sendable {
         var resp = response
 
         resp.headers["Access-Control-Allow-Origin"] = allowOrigin
-        resp.headers["Vary"] = "Origin"
+        // resp.headers["Vary"] = "Origin"
+
+        mergeVary(
+            "Origin",
+            into: &resp.headers
+        )
 
         if config.allowCredentials {
             resp.headers["Access-Control-Allow-Credentials"] = "true"
