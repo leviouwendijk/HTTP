@@ -78,10 +78,92 @@ public struct HTTPRequest: Sendable {
     }
 }
 
+// extension HTTPRequest {
+//     public func decode<T: Decodable>(
+//         _ type: T.Type,
+//         using decoder: JSONDecoder = JSONDecoder()
+//     ) throws -> T {
+//         guard let data = body.data(
+//             using: .utf8
+//         ) else {
+//             throw HTTPParsingError.malformedHeaders
+//         }
+
+//         return try decoder.decode(
+//             T.self,
+//             from: data
+//         )
+//     }
+
+//     public func extract<T: Decodable>(
+//         _ type: T.Type,
+//         using decoder: JSONDecoder = JSONDecoder()
+//     ) throws -> T {
+//         try self.decode(
+//             T.self,
+//             using: decoder
+//         )
+//     }
+
+//     public func key<T: Decodable>(
+//         _ key: String,
+//         as type: T.Type,
+//         using decoder: JSONDecoder = JSONDecoder()
+//     ) throws -> T {
+//         guard let data = body.data(
+//             using: .utf8
+//         ) else {
+//             throw HTTPParsingError.malformedHeaders
+//         }
+
+//         let json = try decoder.decode(
+//             [String: JSONValue].self,
+//             from: data
+//         )
+
+//         guard let value = json[key] else {
+//             throw HTTPParsingError.malformedHeaders
+//         }
+
+//         let valueData = try JSONEncoder().encode(value)
+
+//         return try decoder.decode(
+//             T.self,
+//             from: valueData
+//         )
+//     }
+
+//     public func keys(
+//         _ keys: [String],
+//         using decoder: JSONDecoder = JSONDecoder()
+//     ) throws -> [String: JSONValue] {
+//         guard let data = body.data(
+//             using: .utf8
+//         ) else {
+//             throw HTTPParsingError.malformedHeaders
+//         }
+
+//         let json = try decoder.decode(
+//             [String: JSONValue].self,
+//             from: data
+//         )
+
+//         var result: [String: JSONValue] = [:]
+
+//         for key in keys {
+//             if let value = json[key] {
+//                 result[key] = value
+//             }
+//         }
+
+//         return result
+//     }
+// }
+
 extension HTTPRequest {
     public func decode<T: Decodable>(
         _ type: T.Type,
-        using decoder: JSONDecoder = JSONDecoder()
+        using decoder: JSONDecoder = HTTPJSONCoding.current.decoder()
     ) throws -> T {
         guard let data = body.data(
             using: .utf8
@@ -97,7 +179,7 @@ extension HTTPRequest {
 
     public func extract<T: Decodable>(
         _ type: T.Type,
-        using decoder: JSONDecoder = JSONDecoder()
+        using decoder: JSONDecoder = HTTPJSONCoding.current.decoder()
     ) throws -> T {
         try self.decode(
             T.self,
@@ -108,7 +190,7 @@ extension HTTPRequest {
     public func key<T: Decodable>(
         _ key: String,
         as type: T.Type,
-        using decoder: JSONDecoder = JSONDecoder()
+        using decoder: JSONDecoder = HTTPJSONCoding.current.decoder()
     ) throws -> T {
         guard let data = body.data(
             using: .utf8
@@ -125,7 +207,9 @@ extension HTTPRequest {
             throw HTTPParsingError.malformedHeaders
         }
 
-        let valueData = try JSONEncoder().encode(value)
+        let valueData = try JSONEncoder().encode(
+            value
+        )
 
         return try decoder.decode(
             T.self,
@@ -135,7 +219,7 @@ extension HTTPRequest {
 
     public func keys(
         _ keys: [String],
-        using decoder: JSONDecoder = JSONDecoder()
+        using decoder: JSONDecoder = HTTPJSONCoding.current.decoder()
     ) throws -> [String: JSONValue] {
         guard let data = body.data(
             using: .utf8

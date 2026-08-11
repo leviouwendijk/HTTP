@@ -34,7 +34,7 @@
       "location" : "https://github.com/leviouwendijk/Parsers.git",
       "state" : {
         "branch" : "master",
-        "revision" : "33da592f40da42fd3b85e39d56f38a7b25e95945"
+        "revision" : "a0ede24496d5951f734389590ff5a860ec055035"
       }
     },
     {
@@ -61,7 +61,7 @@
       "location" : "https://github.com/leviouwendijk/Primitives.git",
       "state" : {
         "branch" : "master",
-        "revision" : "9c07dc28206dddc67bb0052a84aaecf803a55f67"
+        "revision" : "6c87b862779cca1371d975c33068ddf363e0fe3f"
       }
     },
     {
@@ -88,7 +88,7 @@
       "location" : "https://github.com/leviouwendijk/TestFlows.git",
       "state" : {
         "branch" : "master",
-        "revision" : "79b1af3ebd1fe834f2bd0b68642e55f25a261428"
+        "revision" : "ef72deb44f924372959189d0c258c5cf7e2ba8ae"
       }
     }
   ],
