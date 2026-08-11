@@ -3,7 +3,7 @@ import Foundation
 public struct HTTPResponseParser {
     public static func parse(
         _ raw: String,
-        headerPolicy: HTTPHeaderPolicy = .responseDefault
+        headerPolicy: HTTPHeaderPolicy = HTTPHeaderPolicy.response.default
     ) throws -> HTTPResponse {
         guard let separatorRange = raw.range(
             of: HTTPConstants.crlfCrLf

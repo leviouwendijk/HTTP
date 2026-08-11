@@ -33,36 +33,16 @@ public struct HTTPHeaderPolicy: Sendable, Hashable, Equatable {
         )
         self.rejectTransferEncoding = rejectTransferEncoding
     }
+}
 
-    public static let requestDefault = Self(
-        maximumHeaderBytes: 32.kib,
-        maximumHeaderLineBytes: 8.kib,
-        maximumHeaderCount: 100,
-        singletonHeaderNames: [
-            "host",
-            "authorization",
-            "content-length",
-            "transfer-encoding",
-            "content-type",
-            "origin",
-            "x-forwarded-for",
-            "x-real-ip",
-            "forwarded",
-            "access-control-request-method",
-            "access-control-request-headers",
-        ],
-        rejectTransferEncoding: true
-    )
+extension HTTPHeaderPolicy {
+    public static var request: RequestAPI {
+        .init()
+    }
 
-    public static let responseDefault = Self(
-        maximumHeaderBytes: 32.kib,
-        maximumHeaderLineBytes: 8.kib,
-        maximumHeaderCount: 100,
-        singletonHeaderNames: [
-            "content-length",
-        ],
-        rejectTransferEncoding: false
-    )
+    public static var response: ResponseAPI {
+        .init()
+    }
 
     public static let permissive = Self(
         maximumHeaderBytes: 256.kib,
@@ -72,5 +52,67 @@ public struct HTTPHeaderPolicy: Sendable, Hashable, Equatable {
         rejectTransferEncoding: false
     )
 
-    public static let `default` = requestDefault
+    public static var `default`: Self {
+        request.default
+    }
+}
+
+extension HTTPHeaderPolicy {
+    public struct RequestAPI: Sendable {
+        public var `default`: HTTPHeaderPolicy {
+            HTTPHeaderPolicy(
+                maximumHeaderBytes: 32.kib,
+                maximumHeaderLineBytes: 8.kib,
+                maximumHeaderCount: 100,
+                singletonHeaderNames: [
+                    "host",
+                    "authorization",
+                    "content-length",
+                    "transfer-encoding",
+                    "content-type",
+                    "origin",
+                    "x-forwarded-for",
+                    "x-real-ip",
+                    "forwarded",
+                    "access-control-request-method",
+                    "access-control-request-headers",
+                ],
+                rejectTransferEncoding: true
+            )
+        }
+    }
+
+    public struct ResponseAPI: Sendable {
+        public var `default`: HTTPHeaderPolicy {
+            HTTPHeaderPolicy(
+                maximumHeaderBytes: 32.kib,
+                maximumHeaderLineBytes: 8.kib,
+                maximumHeaderCount: 100,
+                singletonHeaderNames: [
+                    "content-length",
+                ],
+                rejectTransferEncoding: false
+            )
+        }
+    }
+}
+
+extension HTTPHeaderPolicy {
+    @available(
+        *,
+        deprecated,
+        message: "Use HTTPHeaderPolicy.request.default instead."
+    )
+    public static var requestDefault: Self {
+        request.default
+    }
+
+    @available(
+        *,
+        deprecated,
+        message: "Use HTTPHeaderPolicy.response.default instead."
+    )
+    public static var responseDefault: Self {
+        response.default
+    }
 }
