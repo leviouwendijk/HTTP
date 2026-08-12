@@ -192,5 +192,137 @@ extension HTTPFlowSuite {
                 "header-access.vary.wildcard"
             )
         }
+
+        Step("HTTPHeaders.contentType owns Content-Type access and mutation") {
+            var headers = HTTPHeaders(
+                [
+                    (
+                        "content-type",
+                        "text/plain"
+                    ),
+                    (
+                        "Content-Type",
+                        "application/json"
+                    ),
+                ]
+            )
+
+            try Expect.equal(
+                headers.contentType,
+                "text/plain",
+                "header-access.content-type.read"
+            )
+
+            headers.contentType = "text/html; charset=utf-8"
+
+            try Expect.equal(
+                headers.contentType,
+                "text/html; charset=utf-8",
+                "header-access.content-type.write"
+            )
+
+            try Expect.equal(
+                headers.values(
+                    for: "Content-Type"
+                ).count,
+                1,
+                "header-access.content-type.collapsed"
+            )
+
+            headers.contentType = nil
+
+            try Expect.isNil(
+                headers.contentType,
+                "header-access.content-type.removed"
+            )
+        }
+
+        Step("HTTPHeaders.authorization owns Authorization access and mutation") {
+            var headers = HTTPHeaders(
+                [
+                    (
+                        "authorization",
+                        "Bearer first"
+                    ),
+                    (
+                        "Authorization",
+                        "Bearer second"
+                    ),
+                ]
+            )
+
+            try Expect.equal(
+                headers.authorization,
+                "Bearer first",
+                "header-access.authorization.read"
+            )
+
+            headers.authorization = "Bearer replacement"
+
+            try Expect.equal(
+                headers.authorization,
+                "Bearer replacement",
+                "header-access.authorization.write"
+            )
+
+            try Expect.equal(
+                headers.values(
+                    for: "Authorization"
+                ).count,
+                1,
+                "header-access.authorization.collapsed"
+            )
+
+            headers.authorization = nil
+
+            try Expect.isNil(
+                headers.authorization,
+                "header-access.authorization.removed"
+            )
+        }
+
+        Step("HTTPHeaders.wwwAuthenticate owns WWW-Authenticate access and mutation") {
+            var headers = HTTPHeaders(
+                [
+                    (
+                        "www-authenticate",
+                        "Bearer realm=\"first\""
+                    ),
+                    (
+                        "WWW-Authenticate",
+                        "Bearer realm=\"second\""
+                    ),
+                ]
+            )
+
+            try Expect.equal(
+                headers.wwwAuthenticate,
+                "Bearer realm=\"first\"",
+                "header-access.www-authenticate.read"
+            )
+
+            headers.wwwAuthenticate = "Bearer realm=\"replacement\""
+
+            try Expect.equal(
+                headers.wwwAuthenticate,
+                "Bearer realm=\"replacement\"",
+                "header-access.www-authenticate.write"
+            )
+
+            try Expect.equal(
+                headers.values(
+                    for: "WWW-Authenticate"
+                ).count,
+                1,
+                "header-access.www-authenticate.collapsed"
+            )
+
+            headers.wwwAuthenticate = nil
+
+            try Expect.isNil(
+                headers.wwwAuthenticate,
+                "header-access.www-authenticate.removed"
+            )
+        }
     }
 }

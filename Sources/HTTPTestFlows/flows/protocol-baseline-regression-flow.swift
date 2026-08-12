@@ -48,6 +48,29 @@ extension HTTPFlowSuite {
             }
         }
 
+        Step("request parser rejects ambiguous request-line spacing") {
+            for requestLine in [
+                "GET  /health HTTP/1.1",
+                " GET /health HTTP/1.1",
+                "GET /health HTTP/1.1 ",
+            ] {
+                let raw = httpRawMessage(
+                    headLines: [
+                        requestLine,
+                        "Host: localhost",
+                    ]
+                )
+
+                try Expect.throwsError(
+                    "protocol-baseline.request.ambiguous-spacing"
+                ) {
+                    _ = try HTTPRequestParser.parse(
+                        raw
+                    )
+                }
+            }
+        }
+
         Step("request parser preserves body after first header separator") {
             let body = "alpha\r\n\r\nomega"
 
