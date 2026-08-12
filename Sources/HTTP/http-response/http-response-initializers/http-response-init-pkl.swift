@@ -49,8 +49,11 @@ public extension HTTPResponse {
         status: HTTPStatus = .ok,
         headers: [String: String] = [:]
     ) -> HTTPResponse {
-        var h = headers
-        h["Content-Type"] = "text/pkl; charset=utf-8"
+        var h = HTTPHeaders(
+            headers
+        )
+
+        h.contentType = "text/pkl; charset=utf-8"
         return HTTPResponse(status: status, headers: h, body: content)
     }
     
@@ -61,8 +64,11 @@ public extension HTTPResponse {
         headers: [String: String] = [:]
     ) throws -> HTTPResponse {
         let pklString = renderJSONValueAsPKL(value)
-        var h = headers
-        h["Content-Type"] = "text/pkl; charset=utf-8"
+        var h = HTTPHeaders(
+            headers
+        )
+
+        h.contentType = "text/pkl; charset=utf-8"
         return HTTPResponse(status: status, headers: h, body: pklString)
     }
     
@@ -73,8 +79,11 @@ public extension HTTPResponse {
         headers: [String: String] = [:]
     ) throws -> HTTPResponse {
         let pklString = renderJSONValueAsPKL(.object(object))
-        var h = headers
-        h["Content-Type"] = "text/pkl; charset=utf-8"
+        var h = HTTPHeaders(
+            headers
+        )
+
+        h.contentType = "text/pkl; charset=utf-8"
         return HTTPResponse(status: status, headers: h, body: pklString)
     }
     
@@ -85,8 +94,11 @@ public extension HTTPResponse {
         headers: [String: String] = [:]
     ) throws -> HTTPResponse {
         let pklString = renderJSONValueAsPKL(.array(array))
-        var h = headers
-        h["Content-Type"] = "text/pkl; charset=utf-8"
+        var h = HTTPHeaders(
+            headers
+        )
+
+        h.contentType = "text/pkl; charset=utf-8"
         return HTTPResponse(status: status, headers: h, body: pklString)
     }
 }

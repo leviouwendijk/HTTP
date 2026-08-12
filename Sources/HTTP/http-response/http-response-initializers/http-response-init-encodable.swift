@@ -14,9 +14,7 @@ public extension HTTPResponse {
 
         var headers = headers
 
-        headers[
-            "Content-Type"
-        ] = "application/json; charset=utf-8"
+        headers.contentType = "application/json; charset=utf-8"
 
         return HTTPResponse(
             status: status,

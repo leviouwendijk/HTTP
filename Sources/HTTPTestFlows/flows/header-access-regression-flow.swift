@@ -123,5 +123,74 @@ extension HTTPFlowSuite {
                 "header-access.response.preserved-other-header"
             )
         }
+
+        Step("HTTPHeaders.vary inserts values without replacing existing values") {
+            var headers = HTTPHeaders(
+                [
+                    "Vary": "Authorization"
+                ]
+            )
+
+            headers.vary.insert(
+                "Origin"
+            )
+
+            try Expect.equal(
+                headers["Vary"],
+                "Authorization, Origin",
+                "header-access.vary.insert"
+            )
+        }
+
+        Step("HTTPHeaders.vary deduplicates values case-insensitively") {
+            var headers = HTTPHeaders(
+                [
+                    (
+                        "Vary",
+                        "Authorization"
+                    ),
+                    (
+                        "vary",
+                        "Accept-Encoding, origin"
+                    ),
+                ]
+            )
+
+            headers.vary.insert(
+                "Origin"
+            )
+
+            try Expect.equal(
+                headers["Vary"],
+                "Authorization, Accept-Encoding, origin",
+                "header-access.vary.deduplicate"
+            )
+
+            try Expect.equal(
+                headers.values(
+                    for: "Vary"
+                ).count,
+                1,
+                "header-access.vary.collapsed"
+            )
+        }
+
+        Step("HTTPHeaders.vary wildcard remains dominant") {
+            var headers = HTTPHeaders(
+                [
+                    "Vary": "*"
+                ]
+            )
+
+            headers.vary.insert(
+                "Origin"
+            )
+
+            try Expect.equal(
+                headers["Vary"],
+                "*",
+                "header-access.vary.wildcard"
+            )
+        }
     }
 }

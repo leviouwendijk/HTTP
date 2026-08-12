@@ -142,7 +142,9 @@ public struct CORS: Sendable {
         var resp = HTTPResponse.noContent()
 
         resp.headers["Access-Control-Allow-Origin"] = allowOrigin
-        resp.headers["Vary"] = "Origin"
+        resp.headers.vary.insert(
+            "Origin"
+        )
 
         let methods = config.allowedMethods
             .map(\.rawValue)
@@ -183,9 +185,8 @@ public struct CORS: Sendable {
         resp.headers["Access-Control-Allow-Origin"] = allowOrigin
         // resp.headers["Vary"] = "Origin"
 
-        mergeVary(
-            "Origin",
-            into: &resp.headers
+        resp.headers.vary.insert(
+            "Origin"
         )
 
         if config.allowCredentials {

@@ -12,8 +12,12 @@ public extension HTTPResponse {
     ) throws -> HTTPResponse {
         let json = try JSONValue.object(object).toJSONString()
         
-        var h = headers
-        h["Content-Type"] = "application/json; charset=utf-8"
+        var h = HTTPHeaders(
+            headers
+        )
+
+        h.contentType = "application/json; charset=utf-8"
+
         return HTTPResponse(status: status, headers: h, body: json)
     }
     
@@ -25,8 +29,12 @@ public extension HTTPResponse {
     ) throws -> HTTPResponse {
         let json = try value.toJSONString()
         
-        var h = headers
-        h["Content-Type"] = "application/json; charset=utf-8"
+        var h = HTTPHeaders(
+            headers
+        )
+
+        h.contentType = "application/json; charset=utf-8"
+
         return HTTPResponse(status: status, headers: h, body: json)
     }
     
@@ -38,8 +46,12 @@ public extension HTTPResponse {
     ) throws -> HTTPResponse {
         let json = try JSONValue.array(array).toJSONString()
         
-        var h = headers
-        h["Content-Type"] = "application/json; charset=utf-8"
+        var h = HTTPHeaders(
+            headers
+        )
+
+        h.contentType = "application/json; charset=utf-8"
+
         return HTTPResponse(status: status, headers: h, body: json)
     }
 }
