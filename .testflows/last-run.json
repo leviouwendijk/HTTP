@@ -3,12 +3,26 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-06-22T11:30:02Z",
-  "passed" : 6,
+  "generated_at" : "2026-08-12T12:52:43Z",
+  "passed" : 7,
   "results" : [
     {
+      "display_name" : "HTTP protocol grammar, framing boundaries, and duplicate header semantics remain stable",
+      "duration_seconds" : 0.002335071563720703,
+      "name" : "http.protocol-baseline.regression",
+      "status" : "passed",
+      "tags" : [
+        "framing",
+        "grammar",
+        "headers",
+        "http",
+        "protocol",
+        "regression"
+      ]
+    },
+    {
       "display_name" : "HTTPRequestParser preserves ordinary request parsing behavior",
-      "duration_seconds" : 0.0025800466537475586,
+      "duration_seconds" : 0.0006600618362426758,
       "name" : "http.request-parser.regression",
       "status" : "passed",
       "tags" : [
@@ -21,7 +35,7 @@
     },
     {
       "display_name" : "HTTPResponseParser preserves ordinary response parsing behavior",
-      "duration_seconds" : 0.002333998680114746,
+      "duration_seconds" : 0.0003420114517211914,
       "name" : "http.response-parser.regression",
       "status" : "passed",
       "tags" : [
@@ -34,7 +48,7 @@
     },
     {
       "display_name" : "HTTPResponseBuilder preserves ordinary wire serialization behavior",
-      "duration_seconds" : 0.0007139444351196289,
+      "duration_seconds" : 0.0002789497375488281,
       "name" : "http.response-builder.regression",
       "status" : "passed",
       "tags" : [
@@ -47,7 +61,7 @@
     },
     {
       "display_name" : "HTTP request and response header access remains case-insensitive",
-      "duration_seconds" : 0.0004029273986816406,
+      "duration_seconds" : 0.00026702880859375,
       "name" : "http.header-access.regression",
       "status" : "passed",
       "tags" : [
@@ -59,7 +73,7 @@
     },
     {
       "display_name" : "HTTPResponse constructors preserve content type and status behavior",
-      "duration_seconds" : 0.0007790327072143555,
+      "duration_seconds" : 0.0003299713134765625,
       "name" : "http.response-constructors.regression",
       "status" : "passed",
       "tags" : [
@@ -71,7 +85,7 @@
     },
     {
       "display_name" : "HTTPRequest parses trusted forwarded client IP headers",
-      "duration_seconds" : 0.0009310245513916016,
+      "duration_seconds" : 0.0003319978713989258,
       "name" : "http.client-ip.regression",
       "status" : "passed",
       "tags" : [
@@ -86,5 +100,5 @@
   ],
   "skipped" : 0,
   "title" : "HTTP Test Flows",
-  "total" : 6
+  "total" : 7
 }
