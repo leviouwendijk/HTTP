@@ -1,5 +1,5 @@
 {
-  "originHash" : "ee627281a5a7a66858ad9856ce54606ada567e729e949ff94e4e932834fa6cde",
+  "originHash" : "7b8ae4cbdfad775d6353372ff14f971dbeb39e2536deadb8b97aef025158b261",
   "pins" : [
     {
       "identity" : "ansi",
@@ -17,6 +17,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "ca0f33316fcf56ace04f1f5a1bb178667a291abc"
+      }
+    },
+    {
+      "identity" : "filetypes",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/FileTypes.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "f0c1d8bf5beda0de51c9e95b687fbdec9e4ce7b0"
       }
     },
     {
@@ -47,6 +56,15 @@
       }
     },
     {
+      "identity" : "path",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Path.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "8693f15d32ed07a62eb1a8ff800a1e89b3a72199"
+      }
+    },
+    {
       "identity" : "position",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/leviouwendijk/Position.git",
@@ -62,6 +80,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "6c87b862779cca1371d975c33068ddf363e0fe3f"
+      }
+    },
+    {
+      "identity" : "protocolcomponents",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/ProtocolComponents.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "866ef7b22350aac41f455c5b2188f95f411a4507"
       }
     },
     {

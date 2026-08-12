@@ -6,6 +6,7 @@ enum HTTPFlowSuite: TestFlowRegistry {
     static let flows: [TestFlow] = [
         httpProtocolBaselineRegressionFlow,
         httpTypedTransportRegressionFlow,
+        httpEndpointContractRegressionFlow,
         httpRequestParserRegressionFlow,
         httpResponseParserRegressionFlow,
         httpResponseBuilderRegressionFlow,
