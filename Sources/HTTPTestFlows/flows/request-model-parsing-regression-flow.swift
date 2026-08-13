@@ -371,6 +371,53 @@ extension HTTPFlowSuite {
             )
         }
 
+        Step("request parser and validator expose distinct error taxonomies") {
+            let incomplete = "GET / HTTP/1.1\r\nHost: localhost"
+
+            var parsingErrorObserved = false
+
+            do {
+                _ = try HTTPRequest.Parser().parse(
+                    incomplete
+                )
+            } catch is HTTPParsingError {
+                parsingErrorObserved = true
+            }
+
+            try Expect.equal(
+                parsingErrorObserved,
+                true,
+                "request-model-parsing.error-taxonomy.parser"
+            )
+
+            let raw = httpRawMessage(
+                headLines: [
+                    "BREW / HTTP/1.1",
+                    "Host: localhost",
+                ]
+            )
+
+            let parsed = try HTTPRequest.Parser().parse(
+                raw
+            )
+
+            var validationErrorObserved = false
+
+            do {
+                _ = try HTTPRequest.Validator().validate(
+                    parsed
+                )
+            } catch is HTTPValidationError {
+                validationErrorObserved = true
+            }
+
+            try Expect.equal(
+                validationErrorObserved,
+                true,
+                "request-model-parsing.error-taxonomy.validator"
+            )
+        }
+
         Step("programmatic request construction remains independent of wire validation") {
             let request = HTTPRequest(
                 method: .get,

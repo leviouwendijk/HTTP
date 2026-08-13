@@ -356,6 +356,53 @@ extension HTTPFlowSuite {
             )
         }
 
+        Step("response parser and validator expose distinct error taxonomies") {
+            let incomplete = "HTTP/1.1 200 OK\r\nContent-Length: 0"
+
+            var parsingErrorObserved = false
+
+            do {
+                _ = try HTTPResponse.Parser().parse(
+                    incomplete
+                )
+            } catch is HTTPParsingError {
+                parsingErrorObserved = true
+            }
+
+            try Expect.equal(
+                parsingErrorObserved,
+                true,
+                "response-model-parsing.error-taxonomy.parser"
+            )
+
+            let raw = httpRawMessage(
+                headLines: [
+                    "HTTP/9.0 200 OK",
+                    "Content-Length: 0",
+                ]
+            )
+
+            let parsed = try HTTPResponse.Parser().parse(
+                raw
+            )
+
+            var validationErrorObserved = false
+
+            do {
+                _ = try HTTPResponse.Validator().validate(
+                    parsed
+                )
+            } catch is HTTPValidationError {
+                validationErrorObserved = true
+            }
+
+            try Expect.equal(
+                validationErrorObserved,
+                true,
+                "response-model-parsing.error-taxonomy.validator"
+            )
+        }
+
         Step("programmatic response construction remains independent of wire parsing") {
             let response = HTTPResponse(
                 status: HTTPStatus(
