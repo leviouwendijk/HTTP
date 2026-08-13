@@ -34,7 +34,7 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
         _ target: String
     ) throws {
         guard target.utf8.count <= maximumBytes else {
-            throw HTTPParsingError.requestTargetTooLong(
+            throw HTTPValidationError.requestTargetTooLong(
                 maximumBytes: maximumBytes
             )
         }
@@ -44,18 +44,24 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
         )
 
         if rejectBackslash && path.contains("\\") {
-            throw HTTPParsingError.ambiguousRequestTarget(target)
+            throw HTTPValidationError.ambiguousRequestTarget(
+                target
+            )
         }
 
         if rejectDoubleSlash,
            path != "/",
            path.contains("//") {
-            throw HTTPParsingError.ambiguousRequestTarget(target)
+            throw HTTPValidationError.ambiguousRequestTarget(
+                target
+            )
         }
 
         if rejectEncodedDotSegments,
            containsEncodedDotSegment(path) {
-            throw HTTPParsingError.ambiguousRequestTarget(target)
+            throw HTTPValidationError.ambiguousRequestTarget(
+                target
+            )
         }
     }
 

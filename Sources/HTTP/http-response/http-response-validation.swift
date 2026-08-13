@@ -16,15 +16,15 @@ public extension HTTPResponse {
             let statusLine = parsed.statusLine
 
             guard statusLine.version == HTTPConstants.httpVersion else {
-                throw HTTPParsingError.invalidStatusLine(
-                    parsed.statusLineSource
+                throw HTTPValidationError.unsupportedHTTPVersion(
+                    statusLine.version
                 )
             }
 
             guard let statusCode = Int(
                 statusLine.statusCode
             ) else {
-                throw HTTPParsingError.invalidStatusCode(
+                throw HTTPValidationError.invalidStatusCode(
                     statusLine.statusCode
                 )
             }
@@ -47,16 +47,41 @@ public extension HTTPResponse {
 
                 let lowercasedName = name.lowercased()
 
-                try HTTPWireValidation.validateHeader(
-                    name: name,
-                    value: value
-                )
+                do {
+                    try HTTPWireValidation.validateHeader(
+                        name: name,
+                        value: value
+                    )
+                } catch HTTPWireValidationError.invalidHeaderName(let name) {
+                    throw HTTPValidationError.invalidHeaderName(
+                        name
+                    )
+                } catch HTTPWireValidationError.invalidHeaderValue(let name, let value) {
+                    throw HTTPValidationError.invalidHeaderValue(
+                        name: name,
+                        value: value
+                    )
+                }
 
                 if lowercasedName == HTTPConstants.contentLengthHeader.lowercased() {
-                    _ = try HTTPFraming.parseContentLengthValue(
-                        value,
-                        policy: policies.content
-                    )
+                    do {
+                        _ = try HTTPFraming.parseContentLengthValue(
+                            value,
+                            policy: policies.content
+                        )
+                    } catch HTTPParsingError.invalidContentLength(let value) {
+                        throw HTTPValidationError.invalidContentLength(
+                            value
+                        )
+                    } catch HTTPParsingError.contentLengthTooLarge(
+                        let value,
+                        let maximumBytes
+                    ) {
+                        throw HTTPValidationError.contentLengthTooLarge(
+                            value: value,
+                            maximumBytes: maximumBytes
+                        )
+                    }
                 }
 
                 if policies.headers.singletonHeaderNames.contains(
@@ -65,7 +90,7 @@ public extension HTTPResponse {
                     guard !seenSingletonHeaders.contains(
                         lowercasedName
                     ) else {
-                        throw HTTPParsingError.duplicateHeader(
+                        throw HTTPValidationError.duplicateHeader(
                             name
                         )
                     }

@@ -21,13 +21,13 @@ public extension HTTPRequest {
             guard let method = HTTPMethod(
                 rawValue: methodString
             ) else {
-                throw HTTPParsingError.invalidMethod(
+                throw HTTPValidationError.unsupportedMethod(
                     methodString
                 )
             }
 
             guard version == HTTPConstants.httpVersion else {
-                throw HTTPParsingError.invalidHTTPVersion(
+                throw HTTPValidationError.unsupportedHTTPVersion(
                     version
                 )
             }
@@ -36,17 +36,15 @@ public extension HTTPRequest {
                 try HTTPWireValidation.validateRequestTarget(
                     path
                 )
-
-                try policies.target.validate(
-                    path
-                )
-            } catch let error as HTTPParsingError {
-                throw error
-            } catch {
-                throw HTTPParsingError.invalidRequestLine(
-                    parsed.requestLineSource
+            } catch HTTPWireValidationError.invalidRequestTarget(let target) {
+                throw HTTPValidationError.invalidRequestTarget(
+                    target
                 )
             }
+
+            try policies.target.validate(
+                path
+            )
 
             var headers = HTTPHeaders()
             var seenSingletonHeaders = Set<String>()
@@ -62,23 +60,48 @@ public extension HTTPRequest {
 
                 let lowercasedName = name.lowercased()
 
-                try HTTPWireValidation.validateHeader(
-                    name: name,
-                    value: value
-                )
+                do {
+                    try HTTPWireValidation.validateHeader(
+                        name: name,
+                        value: value
+                    )
+                } catch HTTPWireValidationError.invalidHeaderName(let name) {
+                    throw HTTPValidationError.invalidHeaderName(
+                        name
+                    )
+                } catch HTTPWireValidationError.invalidHeaderValue(let name, let value) {
+                    throw HTTPValidationError.invalidHeaderValue(
+                        name: name,
+                        value: value
+                    )
+                }
 
                 if lowercasedName == "transfer-encoding",
                    policies.headers.rejectTransferEncoding {
-                    throw HTTPParsingError.forbiddenHeader(
+                    throw HTTPValidationError.forbiddenHeader(
                         name
                     )
                 }
 
                 if lowercasedName == HTTPConstants.contentLengthHeader.lowercased() {
-                    _ = try HTTPFraming.parseContentLengthValue(
-                        value,
-                        policy: policies.content
-                    )
+                    do {
+                        _ = try HTTPFraming.parseContentLengthValue(
+                            value,
+                            policy: policies.content
+                        )
+                    } catch HTTPParsingError.invalidContentLength(let value) {
+                        throw HTTPValidationError.invalidContentLength(
+                            value
+                        )
+                    } catch HTTPParsingError.contentLengthTooLarge(
+                        let value,
+                        let maximumBytes
+                    ) {
+                        throw HTTPValidationError.contentLengthTooLarge(
+                            value: value,
+                            maximumBytes: maximumBytes
+                        )
+                    }
                 }
 
                 if policies.headers.singletonHeaderNames.contains(
@@ -87,7 +110,7 @@ public extension HTTPRequest {
                     guard !seenSingletonHeaders.contains(
                         lowercasedName
                     ) else {
-                        throw HTTPParsingError.duplicateHeader(
+                        throw HTTPValidationError.duplicateHeader(
                             name
                         )
                     }
