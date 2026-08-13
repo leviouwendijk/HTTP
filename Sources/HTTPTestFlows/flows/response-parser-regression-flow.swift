@@ -24,7 +24,9 @@ extension HTTPFlowSuite {
                 body: "hello"
             )
 
-            let response = try HTTPResponseParser.parse(raw)
+            let response = try HTTPResponse(
+                parsing: raw
+            )
 
             try Expect.equal(
                 response.status.code,
@@ -68,7 +70,9 @@ extension HTTPFlowSuite {
                 body: "hello"
             )
 
-            let response = try HTTPResponseParser.parse(raw)
+            let response = try HTTPResponse(
+                parsing: raw
+            )
 
             try Expect.equal(
                 response.header("Content-Type"),
@@ -112,7 +116,9 @@ extension HTTPFlowSuite {
                 body: "{}"
             )
 
-            let response = try HTTPResponseParser.parse(raw)
+            let response = try HTTPResponse(
+                parsing: raw
+            )
 
             try Expect.equal(
                 response.header("content-type"),
@@ -141,7 +147,9 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let response = try HTTPResponseParser.parse(raw)
+            let response = try HTTPResponse(
+                parsing: raw
+            )
 
             try Expect.equal(
                 response.status.code,
@@ -165,7 +173,9 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let response = try HTTPResponseParser.parse(raw)
+            let response = try HTTPResponse(
+                parsing: raw
+            )
 
             try Expect.equal(
                 response.status.code,
@@ -190,7 +200,9 @@ extension HTTPFlowSuite {
                 body: "ok"
             )
 
-            let response = try HTTPResponseParser.parse(raw)
+            let response = try HTTPResponse(
+                parsing: raw
+            )
 
             try Expect.equal(
                 response.header("Content-Type"),
@@ -217,7 +229,9 @@ extension HTTPFlowSuite {
                 body: body
             )
 
-            let response = try HTTPResponseParser.parse(raw)
+            let response = try HTTPResponse(
+                parsing: raw
+            )
 
             try Expect.equal(
                 response.body,
@@ -238,7 +252,9 @@ extension HTTPFlowSuite {
                 body: body
             )
 
-            let response = try HTTPResponseParser.parse(raw)
+            let response = try HTTPResponse(
+                parsing: raw
+            )
 
             try Expect.equal(
                 response.body,
@@ -257,7 +273,7 @@ extension HTTPFlowSuite {
                 ).utf8
             )
 
-            let contentLength = HTTPResponseParser.extractContentLength(
+            let contentLength = HTTPResponse.extractContentLength(
                 from: headerData
             )
 
@@ -278,7 +294,7 @@ extension HTTPFlowSuite {
                 ).utf8
             )
 
-            let contentLength = HTTPResponseParser.extractContentLength(
+            let contentLength = HTTPResponse.extractContentLength(
                 from: headerData
             )
 
@@ -299,7 +315,7 @@ extension HTTPFlowSuite {
                 ).utf8
             )
 
-            let contentLength = HTTPResponseParser.extractContentLength(
+            let contentLength = HTTPResponse.extractContentLength(
                 from: headerData
             )
 
@@ -320,7 +336,9 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "response-parser.invalid-status-code"
             ) {
-                _ = try HTTPResponseParser.parse(raw)
+                _ = try HTTPResponse(
+                    parsing: raw
+                )
             }
         }
 
@@ -336,7 +354,9 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "response-parser.malformed-header"
             ) {
-                _ = try HTTPResponseParser.parse(raw)
+                _ = try HTTPResponse(
+                    parsing: raw
+                )
             }
         }
     }

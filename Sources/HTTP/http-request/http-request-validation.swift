@@ -2,15 +2,12 @@ import Foundation
 
 public extension HTTPRequest {
     struct Validator: Sendable {
-        public let headerPolicy: HTTPHeaderPolicy
-        public let requestTargetPolicy: HTTPRequestTargetPolicy
+        public let policies: HTTPRequestPolicies
 
         public init(
-            headerPolicy: HTTPHeaderPolicy = HTTPHeaderPolicy.request.default,
-            requestTargetPolicy: HTTPRequestTargetPolicy = .default
+            policies: HTTPRequestPolicies = HTTPPolicies.request.default
         ) {
-            self.headerPolicy = headerPolicy
-            self.requestTargetPolicy = requestTargetPolicy
+            self.policies = policies
         }
 
         public func validate(
@@ -40,7 +37,7 @@ public extension HTTPRequest {
                     path
                 )
 
-                try requestTargetPolicy.validate(
+                try policies.target.validate(
                     path
                 )
             } catch let error as HTTPParsingError {
@@ -71,7 +68,7 @@ public extension HTTPRequest {
                 )
 
                 if lowercasedName == "transfer-encoding",
-                   headerPolicy.rejectTransferEncoding {
+                   policies.headers.rejectTransferEncoding {
                     throw HTTPParsingError.forbiddenHeader(
                         name
                     )
@@ -79,11 +76,12 @@ public extension HTTPRequest {
 
                 if lowercasedName == HTTPConstants.contentLengthHeader.lowercased() {
                     _ = try HTTPFraming.parseContentLengthValue(
-                        value
+                        value,
+                        policy: policies.content
                     )
                 }
 
-                if headerPolicy.singletonHeaderNames.contains(
+                if policies.headers.singletonHeaderNames.contains(
                     lowercasedName
                 ) {
                     guard !seenSingletonHeaders.contains(

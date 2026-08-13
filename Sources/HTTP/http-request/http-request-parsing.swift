@@ -163,20 +163,18 @@ public extension HTTPRequest {
 
     init(
         parsing raw: String,
-        headerPolicy: HTTPHeaderPolicy = HTTPHeaderPolicy.request.default,
-        requestTargetPolicy: HTTPRequestTargetPolicy = .default
+        policies: HTTPRequestPolicies = HTTPPolicies.request.default
     ) throws {
         let parsed = try Parser(
-            maximumHeaderBytes: headerPolicy.maximumHeaderBytes,
-            maximumHeaderLineBytes: headerPolicy.maximumHeaderLineBytes,
-            maximumHeaderCount: headerPolicy.maximumHeaderCount
+            maximumHeaderBytes: policies.headers.maximumHeaderBytes,
+            maximumHeaderLineBytes: policies.headers.maximumHeaderLineBytes,
+            maximumHeaderCount: policies.headers.maximumHeaderCount
         ).parse(
             raw
         )
 
         self = try Validator(
-            headerPolicy: headerPolicy,
-            requestTargetPolicy: requestTargetPolicy
+            policies: policies
         ).validate(
             parsed
         )

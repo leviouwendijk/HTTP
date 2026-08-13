@@ -23,7 +23,9 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let request = try HTTPRequestParser.parse(raw)
+            let request = try HTTPRequest(
+                parsing: raw
+            )
 
             try Expect.equal(
                 request.method,
@@ -64,7 +66,9 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let request = try HTTPRequestParser.parse(raw)
+            let request = try HTTPRequest(
+                parsing: raw
+            )
 
             try Expect.equal(
                 request.method,
@@ -92,7 +96,9 @@ extension HTTPFlowSuite {
                 body: body
             )
 
-            let request = try HTTPRequestParser.parse(raw)
+            let request = try HTTPRequest(
+                parsing: raw
+            )
 
             try Expect.equal(
                 request.method,
@@ -134,7 +140,9 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let request = try HTTPRequestParser.parse(raw)
+            let request = try HTTPRequest(
+                parsing: raw
+            )
 
             try Expect.equal(
                 request.header("X-Callback"),
@@ -152,7 +160,9 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let request = try HTTPRequestParser.parse(raw)
+            let request = try HTTPRequest(
+                parsing: raw
+            )
 
             try Expect.equal(
                 request.header("Host"),
@@ -176,7 +186,9 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let request = try HTTPRequestParser.parse(raw)
+            let request = try HTTPRequest(
+                parsing: raw
+            )
 
             try Expect.equal(
                 request.header("host"),
@@ -206,7 +218,9 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let request = try HTTPRequestParser.parse(raw)
+            let request = try HTTPRequest(
+                parsing: raw
+            )
 
             try Expect.equal(
                 request.bearerToken(),
@@ -234,7 +248,9 @@ extension HTTPFlowSuite {
                 body: body
             )
 
-            let request = try HTTPRequestParser.parse(raw)
+            let request = try HTTPRequest(
+                parsing: raw
+            )
             let payload = try request.decode(
                 HTTPParserRegressionPayload.self
             )
@@ -260,7 +276,7 @@ extension HTTPFlowSuite {
                 ).utf8
             )
 
-            let contentLength = HTTPRequestParser.extractContentLength(
+            let contentLength = HTTPRequest.extractContentLength(
                 from: headerData
             )
 
@@ -282,7 +298,7 @@ extension HTTPFlowSuite {
                 ).utf8
             )
 
-            let contentLength = HTTPRequestParser.extractContentLength(
+            let contentLength = HTTPRequest.extractContentLength(
                 from: headerData
             )
 
@@ -303,7 +319,7 @@ extension HTTPFlowSuite {
                 ).utf8
             )
 
-            let contentLength = HTTPRequestParser.extractContentLength(
+            let contentLength = HTTPRequest.extractContentLength(
                 from: headerData
             )
 
@@ -324,7 +340,9 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "request-parser.unknown-method"
             ) {
-                _ = try HTTPRequestParser.parse(raw)
+                _ = try HTTPRequest(
+                    parsing: raw
+                )
             }
         }
 
@@ -339,7 +357,9 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "request-parser.missing-path"
             ) {
-                _ = try HTTPRequestParser.parse(raw)
+                _ = try HTTPRequest(
+                    parsing: raw
+                )
             }
         }
 
@@ -354,7 +374,9 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "request-parser.malformed-header"
             ) {
-                _ = try HTTPRequestParser.parse(raw)
+                _ = try HTTPRequest(
+                    parsing: raw
+                )
             }
         }
     }

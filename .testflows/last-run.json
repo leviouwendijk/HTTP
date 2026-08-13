@@ -3,12 +3,12 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-08-12T21:42:53Z",
-  "passed" : 11,
+  "generated_at" : "2026-08-13T00:32:03Z",
+  "passed" : 14,
   "results" : [
     {
       "display_name" : "HTTP protocol grammar, framing boundaries, and duplicate header semantics remain stable",
-      "duration_seconds" : 0.0015590190887451172,
+      "duration_seconds" : 0.0017099380493164062,
       "name" : "http.protocol-baseline.regression",
       "status" : "passed",
       "tags" : [
@@ -22,7 +22,7 @@
     },
     {
       "display_name" : "HTTPGrammar.RequestLine parses request-line syntax without applying HTTP policy",
-      "duration_seconds" : 0.0005019903182983398,
+      "duration_seconds" : 0.000532984733581543,
       "name" : "http.grammar.request-line.regression",
       "status" : "passed",
       "tags" : [
@@ -34,8 +34,34 @@
       ]
     },
     {
+      "display_name" : "HTTPGrammar.HeaderField retains header syntax without applying HTTP policy",
+      "duration_seconds" : 0.0004329681396484375,
+      "name" : "http.grammar.header-field.regression",
+      "status" : "passed",
+      "tags" : [
+        "grammar",
+        "headers",
+        "http",
+        "parsing",
+        "regression"
+      ]
+    },
+    {
+      "display_name" : "HTTPGrammar.StatusLine retains response syntax without applying HTTP policy",
+      "duration_seconds" : 0.0004030466079711914,
+      "name" : "http.grammar.status-line.regression",
+      "status" : "passed",
+      "tags" : [
+        "grammar",
+        "http",
+        "parsing",
+        "regression",
+        "status-line"
+      ]
+    },
+    {
       "display_name" : "HTTPRequest model-owned parsing separates syntax from validation while preserving legacy behavior",
-      "duration_seconds" : 0.000922083854675293,
+      "duration_seconds" : 0.0011019706726074219,
       "name" : "http.request-model-parsing.regression",
       "status" : "passed",
       "tags" : [
@@ -47,8 +73,21 @@
       ]
     },
     {
+      "display_name" : "HTTPResponse model-owned parsing separates retained syntax from acceptance while preserving legacy behavior",
+      "duration_seconds" : 0.0008039474487304688,
+      "name" : "http.response-model-parsing.regression",
+      "status" : "passed",
+      "tags" : [
+        "http",
+        "parser",
+        "regression",
+        "response",
+        "validation"
+      ]
+    },
+    {
       "display_name" : "Typed HTTP request and response models preserve transport behavior",
-      "duration_seconds" : 0.0009109973907470703,
+      "duration_seconds" : 0.0009260177612304688,
       "name" : "http.typed-transport.regression",
       "status" : "passed",
       "tags" : [
@@ -62,7 +101,7 @@
     },
     {
       "display_name" : "HTTP endpoint contracts preserve path construction and request transport semantics",
-      "duration_seconds" : 0.0006449222564697266,
+      "duration_seconds" : 0.0006929636001586914,
       "name" : "http.endpoint-contract.regression",
       "status" : "passed",
       "tags" : [
@@ -77,7 +116,7 @@
     },
     {
       "display_name" : "HTTPRequestParser preserves ordinary request parsing behavior",
-      "duration_seconds" : 0.0008689165115356445,
+      "duration_seconds" : 0.0008200407028198242,
       "name" : "http.request-parser.regression",
       "status" : "passed",
       "tags" : [
@@ -90,7 +129,7 @@
     },
     {
       "display_name" : "HTTPResponseParser preserves ordinary response parsing behavior",
-      "duration_seconds" : 0.0007169246673583984,
+      "duration_seconds" : 0.0003910064697265625,
       "name" : "http.response-parser.regression",
       "status" : "passed",
       "tags" : [
@@ -103,7 +142,7 @@
     },
     {
       "display_name" : "HTTPResponseBuilder preserves ordinary wire serialization behavior",
-      "duration_seconds" : 0.0005849599838256836,
+      "duration_seconds" : 0.00028395652770996094,
       "name" : "http.response-builder.regression",
       "status" : "passed",
       "tags" : [
@@ -116,7 +155,7 @@
     },
     {
       "display_name" : "HTTP request and response header access remains case-insensitive",
-      "duration_seconds" : 0.0005180835723876953,
+      "duration_seconds" : 0.00023806095123291016,
       "name" : "http.header-access.regression",
       "status" : "passed",
       "tags" : [
@@ -128,7 +167,7 @@
     },
     {
       "display_name" : "HTTPResponse constructors preserve content type and status behavior",
-      "duration_seconds" : 0.0006140470504760742,
+      "duration_seconds" : 0.0002810955047607422,
       "name" : "http.response-constructors.regression",
       "status" : "passed",
       "tags" : [
@@ -140,7 +179,7 @@
     },
     {
       "display_name" : "HTTPRequest parses trusted forwarded client IP headers",
-      "duration_seconds" : 0.0005849599838256836,
+      "duration_seconds" : 0.00029098987579345703,
       "name" : "http.client-ip.regression",
       "status" : "passed",
       "tags" : [
@@ -155,5 +194,5 @@
   ],
   "skipped" : 0,
   "title" : "HTTP Test Flows",
-  "total" : 11
+  "total" : 14
 }

@@ -116,8 +116,8 @@ extension HTTPFlowSuite {
             let wire = HTTPResponseBuilder.build(
                 original
             )
-            let parsed = try HTTPResponseParser.parse(
-                wire
+            let parsed = try HTTPResponse(
+                parsing: wire
             )
 
             try Expect.equal(
@@ -170,8 +170,8 @@ extension HTTPFlowSuite {
                 "response-builder.explicit-content-type"
             )
 
-            let parsed = try HTTPResponseParser.parse(
-                wire
+            let parsed = try HTTPResponse(
+                parsing: wire
             )
 
             try Expect.equal(

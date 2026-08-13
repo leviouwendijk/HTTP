@@ -2,12 +2,12 @@ import Foundation
 
 public extension HTTPResponse {
     struct Validator: Sendable {
-        public let headerPolicy: HTTPHeaderPolicy
+        public let policies: HTTPResponsePolicies
 
         public init(
-            headerPolicy: HTTPHeaderPolicy = HTTPHeaderPolicy.response.default
+            policies: HTTPResponsePolicies = HTTPPolicies.response.default
         ) {
-            self.headerPolicy = headerPolicy
+            self.policies = policies
         }
 
         public func validate(
@@ -54,11 +54,12 @@ public extension HTTPResponse {
 
                 if lowercasedName == HTTPConstants.contentLengthHeader.lowercased() {
                     _ = try HTTPFraming.parseContentLengthValue(
-                        value
+                        value,
+                        policy: policies.content
                     )
                 }
 
-                if headerPolicy.singletonHeaderNames.contains(
+                if policies.headers.singletonHeaderNames.contains(
                     lowercasedName
                 ) {
                     guard !seenSingletonHeaders.contains(

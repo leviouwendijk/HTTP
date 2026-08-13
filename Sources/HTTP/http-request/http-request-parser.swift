@@ -1,204 +1,235 @@
 import Foundation
 
-// legacy parser
+@available(
+    *,
+    deprecated,
+    message: "Use HTTPRequest(parsing:policies:) instead."
+)
 public struct HTTPRequestParser {
     public static func parse(
         _ raw: String,
         headerPolicy: HTTPHeaderPolicy = HTTPHeaderPolicy.request.default,
         requestTargetPolicy: HTTPRequestTargetPolicy = .default
     ) throws -> HTTPRequest {
-        guard let separatorRange = raw.range(
-            of: HTTPConstants.crlfCrLf
-        ) else {
-            throw HTTPParsingError.incompleteRequest
-        }
+        let defaults = HTTPPolicies.request.default
 
-        let head = String(
-            raw[..<separatorRange.lowerBound]
+        return try HTTPRequest(
+            parsing: raw,
+            policies: HTTPRequestPolicies(
+                headers: headerPolicy,
+                content: defaults.content,
+                target: requestTargetPolicy
+            )
         )
-
-        guard head.utf8.count <= headerPolicy.maximumHeaderBytes else {
-            throw HTTPParsingError.headerSectionTooLarge(
-                maximumBytes: headerPolicy.maximumHeaderBytes
-            )
-        }
-
-        let body = String(
-            raw[separatorRange.upperBound...]
-        )
-
-        let headLines = head.components(
-            separatedBy: HTTPConstants.crlf
-        )
-
-        guard
-            let requestLine = headLines.first,
-            !requestLine.isEmpty
-        else {
-            throw HTTPParsingError.incompleteRequest
-        }
-
-        let parsedLine = try parseRequestLine(
-            from: requestLine,
-            requestTargetPolicy: requestTargetPolicy
-        )
-
-        let headers = try parseHeaders(
-            from: headLines.dropFirst(),
-            policy: headerPolicy
-        )
-
-        return HTTPRequest(
-            method: parsedLine.method,
-            path: parsedLine.path,
-            headers: headers,
-            body: body
-        )
-    }
-
-    private static func parseRequestLine(
-        from line: String,
-        requestTargetPolicy: HTTPRequestTargetPolicy
-    ) throws -> (method: HTTPMethod, path: String) {
-        // Previous request-line syntax extraction:
-        // let parts = line.split(
-        //     separator: " ",
-        //     omittingEmptySubsequences: true
-        // )
-
-        // guard parts.count == 3 else {
-        //     throw HTTPParsingError.invalidRequestLine(line)
-        // }
-
-        // let methodString = String(parts[0])
-        // let path = String(parts[1])
-        // let version = String(parts[2])
-
-        guard let requestLine = HTTPGrammar.RequestLine.parse(
-            line
-        ) else {
-            throw HTTPParsingError.invalidRequestLine(
-                line
-            )
-        }
-
-        let methodString = requestLine.method
-        let path = requestLine.target
-        let version = requestLine.version
-
-        guard let method = HTTPMethod(rawValue: methodString) else {
-            throw HTTPParsingError.invalidMethod(methodString)
-        }
-
-        guard version == HTTPConstants.httpVersion else {
-            throw HTTPParsingError.invalidHTTPVersion(version)
-        }
-
-        do {
-            try HTTPWireValidation.validateRequestTarget(path)
-            try requestTargetPolicy.validate(path)
-        } catch let error as HTTPParsingError {
-            throw error
-        } catch {
-            throw HTTPParsingError.invalidRequestLine(line)
-        }
-
-        return (
-            method,
-            path
-        )
-    }
-
-    private static func parseHeaders(
-        from lines: ArraySlice<String>,
-        policy: HTTPHeaderPolicy
-    ) throws -> HTTPHeaders {
-        let nonEmptyLines = lines.filter {
-            !$0.isEmpty
-        }
-
-        guard nonEmptyLines.count <= policy.maximumHeaderCount else {
-            throw HTTPParsingError.tooManyHeaders(
-                maximumCount: policy.maximumHeaderCount
-            )
-        }
-
-        var headers = HTTPHeaders()
-        var seenSingletonHeaders = Set<String>()
-
-        for line in nonEmptyLines {
-            guard line.utf8.count <= policy.maximumHeaderLineBytes else {
-                throw HTTPParsingError.headerLineTooLarge(
-                    name: nil,
-                    maximumBytes: policy.maximumHeaderLineBytes
-                )
-            }
-
-            guard let separatorIndex = line.firstIndex(
-                of: Character(HTTPConstants.headerSeparator)
-            ) else {
-                throw HTTPParsingError.malformedHeaders
-            }
-
-            let name = String(
-                line[..<separatorIndex]
-            )
-            .trimmingCharacters(
-                in: .whitespaces
-            )
-
-            let value = String(
-                line[line.index(after: separatorIndex)...]
-            )
-            .trimmingCharacters(
-                in: .whitespaces
-            )
-
-            let lowercasedName = name.lowercased()
-
-            try HTTPWireValidation.validateHeader(
-                name: name,
-                value: value
-            )
-
-            guard line.utf8.count <= policy.maximumHeaderLineBytes else {
-                throw HTTPParsingError.headerLineTooLarge(
-                    name: name,
-                    maximumBytes: policy.maximumHeaderLineBytes
-                )
-            }
-
-            if lowercasedName == "transfer-encoding",
-               policy.rejectTransferEncoding {
-                throw HTTPParsingError.forbiddenHeader(name)
-            }
-
-            if lowercasedName == HTTPConstants.contentLengthHeader.lowercased() {
-                _ = try HTTPFraming.parseContentLengthValue(value)
-            }
-
-            if policy.singletonHeaderNames.contains(lowercasedName) {
-                guard !seenSingletonHeaders.contains(lowercasedName) else {
-                    throw HTTPParsingError.duplicateHeader(name)
-                }
-
-                seenSingletonHeaders.insert(lowercasedName)
-            }
-
-            headers.append(
-                name,
-                value
-            )
-        }
-
-        return headers
     }
 
     public static func extractContentLength(
         from headerData: Data
     ) -> Int? {
-        try? HTTPFraming.extractContentLength(
+        HTTPRequest.extractContentLength(
             from: headerData
         )
     }
 }
+
+// public struct HTTPRequestParser {
+//     public static func parse(
+//         _ raw: String,
+//         headerPolicy: HTTPHeaderPolicy = HTTPHeaderPolicy.request.default,
+//         requestTargetPolicy: HTTPRequestTargetPolicy = .default
+//     ) throws -> HTTPRequest {
+//         guard let separatorRange = raw.range(
+//             of: HTTPConstants.crlfCrLf
+//         ) else {
+//             throw HTTPParsingError.incompleteRequest
+//         }
+
+//         let head = String(
+//             raw[..<separatorRange.lowerBound]
+//         )
+
+//         guard head.utf8.count <= headerPolicy.maximumHeaderBytes else {
+//             throw HTTPParsingError.headerSectionTooLarge(
+//                 maximumBytes: headerPolicy.maximumHeaderBytes
+//             )
+//         }
+
+//         let body = String(
+//             raw[separatorRange.upperBound...]
+//         )
+
+//         let headLines = head.components(
+//             separatedBy: HTTPConstants.crlf
+//         )
+
+//         guard
+//             let requestLine = headLines.first,
+//             !requestLine.isEmpty
+//         else {
+//             throw HTTPParsingError.incompleteRequest
+//         }
+
+//         let parsedLine = try parseRequestLine(
+//             from: requestLine,
+//             requestTargetPolicy: requestTargetPolicy
+//         )
+
+//         let headers = try parseHeaders(
+//             from: headLines.dropFirst(),
+//             policy: headerPolicy
+//         )
+
+//         return HTTPRequest(
+//             method: parsedLine.method,
+//             path: parsedLine.path,
+//             headers: headers,
+//             body: body
+//         )
+//     }
+
+//     private static func parseRequestLine(
+//         from line: String,
+//         requestTargetPolicy: HTTPRequestTargetPolicy
+//     ) throws -> (method: HTTPMethod, path: String) {
+//         // Previous request-line syntax extraction:
+//         // let parts = line.split(
+//         //     separator: " ",
+//         //     omittingEmptySubsequences: true
+//         // )
+
+//         // guard parts.count == 3 else {
+//         //     throw HTTPParsingError.invalidRequestLine(line)
+//         // }
+
+//         // let methodString = String(parts[0])
+//         // let path = String(parts[1])
+//         // let version = String(parts[2])
+
+//         guard let requestLine = HTTPGrammar.RequestLine.parse(
+//             line
+//         ) else {
+//             throw HTTPParsingError.invalidRequestLine(
+//                 line
+//             )
+//         }
+
+//         let methodString = requestLine.method
+//         let path = requestLine.target
+//         let version = requestLine.version
+
+//         guard let method = HTTPMethod(rawValue: methodString) else {
+//             throw HTTPParsingError.invalidMethod(methodString)
+//         }
+
+//         guard version == HTTPConstants.httpVersion else {
+//             throw HTTPParsingError.invalidHTTPVersion(version)
+//         }
+
+//         do {
+//             try HTTPWireValidation.validateRequestTarget(path)
+//             try requestTargetPolicy.validate(path)
+//         } catch let error as HTTPParsingError {
+//             throw error
+//         } catch {
+//             throw HTTPParsingError.invalidRequestLine(line)
+//         }
+
+//         return (
+//             method,
+//             path
+//         )
+//     }
+
+//     private static func parseHeaders(
+//         from lines: ArraySlice<String>,
+//         policy: HTTPHeaderPolicy
+//     ) throws -> HTTPHeaders {
+//         let nonEmptyLines = lines.filter {
+//             !$0.isEmpty
+//         }
+
+//         guard nonEmptyLines.count <= policy.maximumHeaderCount else {
+//             throw HTTPParsingError.tooManyHeaders(
+//                 maximumCount: policy.maximumHeaderCount
+//             )
+//         }
+
+//         var headers = HTTPHeaders()
+//         var seenSingletonHeaders = Set<String>()
+
+//         for line in nonEmptyLines {
+//             guard line.utf8.count <= policy.maximumHeaderLineBytes else {
+//                 throw HTTPParsingError.headerLineTooLarge(
+//                     name: nil,
+//                     maximumBytes: policy.maximumHeaderLineBytes
+//                 )
+//             }
+
+//             guard let separatorIndex = line.firstIndex(
+//                 of: Character(HTTPConstants.headerSeparator)
+//             ) else {
+//                 throw HTTPParsingError.malformedHeaders
+//             }
+
+//             let name = String(
+//                 line[..<separatorIndex]
+//             )
+//             .trimmingCharacters(
+//                 in: .whitespaces
+//             )
+
+//             let value = String(
+//                 line[line.index(after: separatorIndex)...]
+//             )
+//             .trimmingCharacters(
+//                 in: .whitespaces
+//             )
+
+//             let lowercasedName = name.lowercased()
+
+//             try HTTPWireValidation.validateHeader(
+//                 name: name,
+//                 value: value
+//             )
+
+//             guard line.utf8.count <= policy.maximumHeaderLineBytes else {
+//                 throw HTTPParsingError.headerLineTooLarge(
+//                     name: name,
+//                     maximumBytes: policy.maximumHeaderLineBytes
+//                 )
+//             }
+
+//             if lowercasedName == "transfer-encoding",
+//                policy.rejectTransferEncoding {
+//                 throw HTTPParsingError.forbiddenHeader(name)
+//             }
+
+//             if lowercasedName == HTTPConstants.contentLengthHeader.lowercased() {
+//                 _ = try HTTPFraming.parseContentLengthValue(value)
+//             }
+
+//             if policy.singletonHeaderNames.contains(lowercasedName) {
+//                 guard !seenSingletonHeaders.contains(lowercasedName) else {
+//                     throw HTTPParsingError.duplicateHeader(name)
+//                 }
+
+//                 seenSingletonHeaders.insert(lowercasedName)
+//             }
+
+//             headers.append(
+//                 name,
+//                 value
+//             )
+//         }
+
+//         return headers
+//     }
+
+//     public static func extractContentLength(
+//         from headerData: Data
+//     ) -> Int? {
+//         try? HTTPFraming.extractContentLength(
+//             from: headerData
+//         )
+//     }
+// }

@@ -25,8 +25,8 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "protocol-baseline.request.unsupported-version"
             ) {
-                _ = try HTTPRequestParser.parse(
-                    raw
+                _ = try HTTPRequest(
+                    parsing: raw
                 )
             }
         }
@@ -42,8 +42,8 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "protocol-baseline.request.extra-component"
             ) {
-                _ = try HTTPRequestParser.parse(
-                    raw
+                _ = try HTTPRequest(
+                    parsing: raw
                 )
             }
         }
@@ -64,8 +64,8 @@ extension HTTPFlowSuite {
                 try Expect.throwsError(
                     "protocol-baseline.request.ambiguous-spacing"
                 ) {
-                    _ = try HTTPRequestParser.parse(
-                        raw
+                    _ = try HTTPRequest(
+                        parsing: raw
                     )
                 }
             }
@@ -83,8 +83,8 @@ extension HTTPFlowSuite {
                 body: body
             )
 
-            let request = try HTTPRequestParser.parse(
-                raw
+            let request = try HTTPRequest(
+                parsing: raw
             )
 
             try Expect.equal(
@@ -105,8 +105,8 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let request = try HTTPRequestParser.parse(
-                raw
+            let request = try HTTPRequest(
+                parsing: raw
             )
 
             try Expect.equal(
@@ -145,8 +145,8 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "protocol-baseline.response.unsupported-version"
             ) {
-                _ = try HTTPResponseParser.parse(
-                    raw
+                _ = try HTTPResponse(
+                    parsing: raw
                 )
             }
         }
@@ -159,8 +159,8 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let response = try HTTPResponseParser.parse(
-                raw
+            let response = try HTTPResponse(
+                parsing: raw
             )
 
             try Expect.equal(
@@ -181,8 +181,8 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let response = try HTTPResponseParser.parse(
-                raw
+            let response = try HTTPResponse(
+                parsing: raw
             )
 
             try Expect.equal(
@@ -214,16 +214,16 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "protocol-baseline.request.header-terminator"
             ) {
-                _ = try HTTPRequestParser.parse(
-                    "GET / HTTP/1.1\r\nHost: localhost\r\n"
+                _ = try HTTPRequest(
+                    parsing: "GET / HTTP/1.1\r\nHost: localhost\r\n"
                 )
             }
 
             try Expect.throwsError(
                 "protocol-baseline.response.header-terminator"
             ) {
-                _ = try HTTPResponseParser.parse(
-                    "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n"
+                _ = try HTTPResponse(
+                    parsing: "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n"
                 )
             }
         }

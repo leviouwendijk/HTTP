@@ -27,8 +27,8 @@ extension HTTPFlowSuite {
                 body: body
             )
 
-            let legacy = try HTTPResponseParser.parse(
-                raw
+            let legacy = try HTTPResponse(
+                parsing: raw
             )
 
             let response = try HTTPResponse(
@@ -199,13 +199,13 @@ extension HTTPFlowSuite {
             try Expect.throwsError(
                 "response-model-parsing.validation.legacy-duplicate-content-length"
             ) {
-                _ = try HTTPResponseParser.parse(
-                    raw
+                _ = try HTTPResponse(
+                    parsing: raw
                 )
             }
         }
 
-        Step("model-owned response initializer preserves permissive policy override") {
+        Step("same parsed response can be evaluated under different aggregate policies") {
             let raw = httpRawMessage(
                 headLines: [
                     "HTTP/1.1 200 OK",
@@ -214,26 +214,104 @@ extension HTTPFlowSuite {
                 ]
             )
 
-            let legacy = try HTTPResponseParser.parse(
-                raw,
-                headerPolicy: .permissive
+            let parsed = try HTTPResponse.Parser().parse(
+                raw
             )
 
-            let response = try HTTPResponse(
+            let strict = HTTPPolicies.response.default
+
+            let permissive = HTTPResponsePolicies(
+                headers: .permissive,
+                content: strict.content
+            )
+
+            try Expect.throwsError(
+                "response-model-parsing.policy.strict-headers"
+            ) {
+                _ = try HTTPResponse.Validator(
+                    policies: strict
+                ).validate(
+                    parsed
+                )
+            }
+
+            let response = try HTTPResponse.Validator(
+                policies: permissive
+            ).validate(
+                parsed
+            )
+
+            try Expect.equal(
+                response.headers.values(
+                    for: HTTPConstants.contentLengthHeader
+                ).count,
+                2,
+                "response-model-parsing.policy.permissive-headers"
+            )
+
+            let initialized = try HTTPResponse(
                 parsing: raw,
-                headerPolicy: .permissive
+                policies: permissive
             )
 
             try Expect.equal(
-                response.status,
-                legacy.status,
-                "response-model-parsing.policy.status"
-            )
-
-            try Expect.equal(
+                initialized.headers,
                 response.headers,
-                legacy.headers,
-                "response-model-parsing.policy.headers"
+                "response-model-parsing.policy.initializer"
+            )
+        }
+
+        Step("response validator applies aggregate content policy") {
+            let body = "hello"
+
+            let raw = httpRawMessage(
+                headLines: [
+                    "HTTP/1.1 200 OK",
+                    "Content-Length: \(body.utf8.count)",
+                ],
+                body: body
+            )
+
+            let parsed = try HTTPResponse.Parser().parse(
+                raw
+            )
+
+            let defaults = HTTPPolicies.response.default
+
+            let restricted = HTTPResponsePolicies(
+                headers: defaults.headers,
+                content: .custom(
+                    body.utf8.count - 1
+                )
+            )
+
+            let allowed = HTTPResponsePolicies(
+                headers: defaults.headers,
+                content: .custom(
+                    body.utf8.count
+                )
+            )
+
+            try Expect.throwsError(
+                "response-model-parsing.policy.content-restricted"
+            ) {
+                _ = try HTTPResponse.Validator(
+                    policies: restricted
+                ).validate(
+                    parsed
+                )
+            }
+
+            let response = try HTTPResponse.Validator(
+                policies: allowed
+            ).validate(
+                parsed
+            )
+
+            try Expect.equal(
+                response.body,
+                body,
+                "response-model-parsing.policy.content-allowed"
             )
         }
 
