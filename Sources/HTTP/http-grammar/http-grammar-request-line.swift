@@ -44,119 +44,79 @@ public extension HTTPGrammar {
         public func parse(
             _ cursor: Cursor
         ) -> ParseResult<Output> {
-            var cursor = cursor
-            let start = cursor.mark()
-
-            guard let method = Self.component(
-                from: &cursor
-            ) else {
-                return .failure(
-                    Diagnostic(
-                        "expected HTTP method",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            guard Self.space(
-                from: &cursor
-            ) else {
-                return .failure(
-                    Diagnostic(
-                        "expected space after HTTP method",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            let requestTarget: HTTPGrammar.RequestTarget.Output
-
-            switch HTTPGrammar.RequestTarget().parse(
-                cursor
-            ) {
-            case .failure(let diagnostic):
-                return .failure(
-                    diagnostic
-                )
-
-            case .success(let output, let next):
-                requestTarget = output
-                cursor = next
-            }
-
-            // Previous request-target syntax extraction:
-            // guard let target = Self.component(
-            //     from: &cursor
-            // ) else {
-            //     return .failure(
-            //         Diagnostic(
-            //             "expected HTTP request target",
-            //             range: cursor.range(
-            //                 from: start
-            //             )
-            //         )
-            //     )
-            // }
-
-            guard Self.space(
-                from: &cursor
-            ) else {
-                return .failure(
-                    Diagnostic(
-                        "expected space after HTTP request target",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            guard let version = Self.component(
-                from: &cursor
-            ) else {
-                return .failure(
-                    Diagnostic(
-                        "expected HTTP version",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            guard cursor.isEOF else {
-                return .failure(
-                    Diagnostic(
-                        "unexpected request-line input",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            return .success(
-                Output(
-                    method: method,
-                    requestTarget: requestTarget,
-                    version: version
-                ),
-                cursor
+            let method = TakeWhile(
+                where: {
+                    !$0.isWhitespace
+                },
+                minimumCount: 1,
+                expectation: "HTTP method"
             )
 
-            // Previous request-target composition:
-            // return .success(
-            //     Output(
-            //         method: method,
-            //         target: target,
-            //         version: version
-            //     ),
-            //     cursor
-            // )
+            let methodSpace = Char(
+                where: {
+                    $0 == " "
+                },
+                want: "space after HTTP method"
+            )
+            .map {
+                _ in ()
+            }
+
+            let requestTargetSpace = Char(
+                where: {
+                    $0 == " "
+                },
+                want: "space after HTTP request target"
+            )
+            .map {
+                _ in ()
+            }
+
+            let version = TakeWhile(
+                where: {
+                    !$0.isWhitespace
+                },
+                minimumCount: 1,
+                expectation: "HTTP version"
+            )
+
+            let parser = method
+                .skip(
+                    methodSpace
+                )
+                .then(
+                    HTTPGrammar.RequestTarget()
+                )
+                .skip(
+                    requestTargetSpace
+                )
+                .then(
+                    version
+                )
+                .skip(
+                    EndOfInput()
+                )
+                .map {
+                    parsed in
+
+                    let (
+                        (
+                            method,
+                            requestTarget
+                        ),
+                        version
+                    ) = parsed
+
+                    return Output(
+                        method: method,
+                        requestTarget: requestTarget,
+                        version: version
+                    )
+                }
+
+            return parser.parse(
+                cursor
+            )
         }
 
         public static func parse(

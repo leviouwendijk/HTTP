@@ -23,88 +23,78 @@ public extension HTTPGrammar {
         public func parse(
             _ cursor: Cursor
         ) -> ParseResult<Output> {
-            var cursor = cursor
-            let start = cursor.mark()
-
-            guard let version = Self.component(
-                from: &cursor
-            ) else {
-                return .failure(
-                    Diagnostic(
-                        "expected HTTP version",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            guard Self.space(
-                from: &cursor
-            ) else {
-                return .failure(
-                    Diagnostic(
-                        "expected space after HTTP version",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            guard let statusCode = Self.component(
-                from: &cursor
-            ) else {
-                return .failure(
-                    Diagnostic(
-                        "expected HTTP status code",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            guard !cursor.isEOF else {
-                return .success(
-                    Output(
-                        version: version,
-                        statusCode: statusCode,
-                        reasonPhrase: nil
-                    ),
-                    cursor
-                )
-            }
-
-            guard Self.space(
-                from: &cursor
-            ) else {
-                return .failure(
-                    Diagnostic(
-                        "expected space before HTTP reason phrase",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
-                )
-            }
-
-            let reasonStart = cursor.mark()
-
-            cursor.advance {
-                _ in true
-            }
-
-            let reasonPhrase = cursor.slice(
-                from: reasonStart
+            let version = TakeWhile(
+                where: {
+                    !$0.isWhitespace
+                },
+                minimumCount: 1,
+                expectation: "HTTP version"
             )
 
-            return .success(
-                Output(
-                    version: version,
-                    statusCode: statusCode,
-                    reasonPhrase: reasonPhrase
-                ),
+            let versionSpace = Char(
+                where: {
+                    $0 == " "
+                },
+                want: "space after HTTP version"
+            )
+            .map {
+                _ in ()
+            }
+
+            let statusCode = TakeWhile(
+                where: {
+                    !$0.isWhitespace
+                },
+                minimumCount: 1,
+                expectation: "HTTP status code"
+            )
+
+            let reasonPhrase = Char(
+                where: {
+                    $0 == " "
+                },
+                want: "space before HTTP reason phrase"
+            )
+            .map {
+                _ in ()
+            }
+            .keep(
+                Remainder()
+            )
+            .optional()
+
+            let parser = version
+                .skip(
+                    versionSpace
+                )
+                .then(
+                    statusCode
+                )
+                .then(
+                    reasonPhrase
+                )
+                .skip(
+                    EndOfInput()
+                )
+                .map {
+                    parsed in
+
+                    let (
+                        (
+                            version,
+                            statusCode
+                        ),
+                        reasonPhrase
+                    ) = parsed
+
+                    return Output(
+                        version: version,
+                        statusCode: statusCode,
+                        reasonPhrase: reasonPhrase
+                    )
+                }
+
+            return parser.parse(
                 cursor
             )
         }
@@ -125,34 +115,34 @@ public extension HTTPGrammar {
             }
         }
 
-        private static func component(
-            from cursor: inout Cursor
-        ) -> String? {
-            let start = cursor.mark()
+        // private static func component(
+        //     from cursor: inout Cursor
+        // ) -> String? {
+        //     let start = cursor.mark()
 
-            cursor.advance {
-                !$0.isWhitespace
-            }
+        //     cursor.advance {
+        //         !$0.isWhitespace
+        //     }
 
-            guard cursor.index != start else {
-                return nil
-            }
+        //     guard cursor.index != start else {
+        //         return nil
+        //     }
 
-            return cursor.slice(
-                from: start
-            )
-        }
+        //     return cursor.slice(
+        //         from: start
+        //     )
+        // }
 
-        private static func space(
-            from cursor: inout Cursor
-        ) -> Bool {
-            guard cursor.peek() == " " else {
-                return false
-            }
+        // private static func space(
+        //     from cursor: inout Cursor
+        // ) -> Bool {
+        //     guard cursor.peek() == " " else {
+        //         return false
+        //     }
 
-            cursor.advance()
+        //     cursor.advance()
 
-            return true
-        }
+        //     return true
+        // }
     }
 }

@@ -174,6 +174,39 @@ extension HTTPFlowSuite {
             )
         }
 
+        Step("typed endpoint binds input and output to ordinary transport metadata") {
+            let endpoint = Endpoint<
+                HTTPEndpointContractRequest,
+                HTTPEndpointContractResponse
+            >(
+                method: .post,
+                "models",
+                "create"
+            )
+
+            try Expect.equal(
+                endpoint.method,
+                .post,
+                "endpoint-contract.typed.method"
+            )
+
+            try Expect.equal(
+                endpoint.path,
+                "/models/create",
+                "endpoint-contract.typed.path"
+            )
+
+            try Expect.equal(
+                endpoint.transport,
+                HTTPEndpoint(
+                    method: .post,
+                    "models",
+                    "create"
+                ),
+                "endpoint-contract.typed.transport"
+            )
+        }
+
         Step("endpoint request exposes its declared endpoint") {
             try Expect.equal(
                 HTTPEndpointContractRequest.endpoint.method,
@@ -228,3 +261,6 @@ private struct HTTPEndpointContractRequest:
 
     let value: String
 }
+
+private enum HTTPEndpointContractResponse {}
+

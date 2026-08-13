@@ -54,6 +54,18 @@ extension HTTPFlowSuite {
             )
         }
 
+        Step("status-line grammar distinguishes absent from explicitly empty reason phrase") {
+            let output = HTTPGrammar.StatusLine.parse(
+                "HTTP/1.1 204 "
+            )
+
+            try Expect.equal(
+                output?.reasonPhrase,
+                "",
+                "status-line.reason-explicitly-empty"
+            )
+        }
+
         Step("status-line grammar does not apply version or status policy") {
             let output = HTTPGrammar.StatusLine.parse(
                 "HTTP/9.9 nope Whatever"

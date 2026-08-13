@@ -20,46 +20,39 @@ public extension HTTPGrammar {
         public func parse(
             _ cursor: Cursor
         ) -> ParseResult<Output> {
-            var cursor = cursor
-            let start = cursor.mark()
-            let nameStart = cursor.mark()
+            let name = TakeWhile(
+                where: {
+                    $0 != ":"
+                }
+            )
 
-            cursor.advance {
-                $0 != ":"
+            let separator = Char(
+                where: {
+                    $0 == ":"
+                },
+                want: "HTTP header separator"
+            )
+            .map {
+                _ in ()
             }
 
-            guard cursor.peek() == ":" else {
-                return .failure(
-                    Diagnostic(
-                        "expected HTTP header separator",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
+            let parser = name
+                .skip(
+                    separator
                 )
-            }
+                .then(
+                    Remainder()
+                )
+                .map {
+                    parsed in
 
-            let name = cursor.slice(
-                from: nameStart
-            )
+                    Output(
+                        name: parsed.0,
+                        value: parsed.1
+                    )
+                }
 
-            cursor.advance()
-
-            let valueStart = cursor.mark()
-
-            cursor.advance {
-                _ in true
-            }
-
-            let value = cursor.slice(
-                from: valueStart
-            )
-
-            return .success(
-                Output(
-                    name: name,
-                    value: value
-                ),
+            return parser.parse(
                 cursor
             )
         }
