@@ -15,7 +15,8 @@ public extension HTTPRequest {
         ) throws -> HTTPRequest {
             let requestLine = parsed.requestLine
             let methodString = requestLine.method
-            let path = requestLine.target
+            let requestTarget = requestLine.requestTarget
+            let path = requestTarget.raw
             let version = requestLine.version
 
             guard let method = HTTPMethod(
@@ -43,7 +44,7 @@ public extension HTTPRequest {
             }
 
             try policies.target.validate(
-                path
+                requestTarget
             )
 
             var headers = HTTPHeaders()

@@ -31,21 +31,19 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
     )
 
     public func validate(
-        _ target: String
+        _ target: HTTPGrammar.RequestTarget.Output
     ) throws {
-        guard target.utf8.count <= maximumBytes else {
+        guard target.raw.utf8.count <= maximumBytes else {
             throw HTTPValidationError.requestTargetTooLong(
                 maximumBytes: maximumBytes
             )
         }
 
-        let path = pathPart(
-            of: target
-        )
+        let path = target.path
 
         if rejectBackslash && path.contains("\\") {
             throw HTTPValidationError.ambiguousRequestTarget(
-                target
+                target.raw
             )
         }
 
@@ -53,29 +51,25 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
            path != "/",
            path.contains("//") {
             throw HTTPValidationError.ambiguousRequestTarget(
-                target
+                target.raw
             )
         }
 
         if rejectEncodedDotSegments,
            containsEncodedDotSegment(path) {
             throw HTTPValidationError.ambiguousRequestTarget(
-                target
+                target.raw
             )
         }
     }
 
-    private func pathPart(
-        of target: String
-    ) -> String {
-        guard let queryIndex = target.firstIndex(
-            of: "?"
-        ) else {
-            return target
-        }
-
-        return String(
-            target[..<queryIndex]
+    public func validate(
+        _ target: String
+    ) throws {
+        try validate(
+            HTTPGrammar.RequestTarget.Output(
+                raw: target
+            )
         )
     }
 

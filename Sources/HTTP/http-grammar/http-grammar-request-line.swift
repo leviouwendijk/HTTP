@@ -4,16 +4,37 @@ public extension HTTPGrammar {
     struct RequestLine: Parser {
         public struct Output: Sendable, Equatable {
             public let method: String
-            public let target: String
+            public let requestTarget: HTTPGrammar.RequestTarget.Output
             public let version: String
+
+            public var target: String {
+                requestTarget.raw
+            }
+
+            // Previous request-target representation:
+            // public let target: String
 
             public init(
                 method: String,
                 target: String,
                 version: String
             ) {
+                self.init(
+                    method: method,
+                    requestTarget: HTTPGrammar.RequestTarget.Output(
+                        raw: target
+                    ),
+                    version: version
+                )
+            }
+
+            public init(
+                method: String,
+                requestTarget: HTTPGrammar.RequestTarget.Output,
+                version: String
+            ) {
                 self.method = method
-                self.target = target
+                self.requestTarget = requestTarget
                 self.version = version
             }
         }
@@ -52,18 +73,34 @@ public extension HTTPGrammar {
                 )
             }
 
-            guard let target = Self.component(
-                from: &cursor
-            ) else {
+            let requestTarget: HTTPGrammar.RequestTarget.Output
+
+            switch HTTPGrammar.RequestTarget().parse(
+                cursor
+            ) {
+            case .failure(let diagnostic):
                 return .failure(
-                    Diagnostic(
-                        "expected HTTP request target",
-                        range: cursor.range(
-                            from: start
-                        )
-                    )
+                    diagnostic
                 )
+
+            case .success(let output, let next):
+                requestTarget = output
+                cursor = next
             }
+
+            // Previous request-target syntax extraction:
+            // guard let target = Self.component(
+            //     from: &cursor
+            // ) else {
+            //     return .failure(
+            //         Diagnostic(
+            //             "expected HTTP request target",
+            //             range: cursor.range(
+            //                 from: start
+            //             )
+            //         )
+            //     )
+            // }
 
             guard Self.space(
                 from: &cursor
@@ -105,11 +142,21 @@ public extension HTTPGrammar {
             return .success(
                 Output(
                     method: method,
-                    target: target,
+                    requestTarget: requestTarget,
                     version: version
                 ),
                 cursor
             )
+
+            // Previous request-target composition:
+            // return .success(
+            //     Output(
+            //         method: method,
+            //         target: target,
+            //         version: version
+            //     ),
+            //     cursor
+            // )
         }
 
         public static func parse(

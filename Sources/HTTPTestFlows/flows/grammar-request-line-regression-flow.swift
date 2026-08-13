@@ -47,6 +47,18 @@ extension HTTPFlowSuite {
                 "/search?q=dog%20training&page=2",
                 "request-line.target-preserved"
             )
+
+            try Expect.equal(
+                output?.requestTarget.path,
+                "/search",
+                "request-line.request-target.path"
+            )
+
+            try Expect.equal(
+                output?.requestTarget.query,
+                "q=dog%20training&page=2",
+                "request-line.request-target.query"
+            )
         }
 
         Step("request-line grammar does not apply method or version policy") {
