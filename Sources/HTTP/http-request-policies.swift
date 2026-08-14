@@ -1,11 +1,11 @@
 public struct HTTPRequestPolicies: Sendable, Hashable, Equatable {
     public let headers: HTTPHeaderPolicy
-    public let content: HTTPContentLengthPolicy
+    public let content: HTTPContentPolicy
     public let target: HTTPRequestTargetPolicy
 
     public init(
         headers: HTTPHeaderPolicy,
-        content: HTTPContentLengthPolicy,
+        content: HTTPContentPolicy,
         target: HTTPRequestTargetPolicy
     ) {
         self.headers = headers

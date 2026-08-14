@@ -7,6 +7,7 @@ public enum HTTPConstants {
     public static let httpVersion = "HTTP/1.1"
     
     public static let contentLengthHeader = "Content-Length"
+    public static let transferEncodingHeader = "Transfer-Encoding"
     public static let contentTypeHeader = "Content-Type"
     public static let authorizationHeader = "Authorization"
     

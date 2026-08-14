@@ -7,6 +7,14 @@ public enum HTTPParsingError: Error, LocalizedError, Sendable, Equatable {
     case invalidContentLength(String)
     case contentLengthTooLarge(value: String, maximumBytes: Int)
     case conflictingContentLength([Int])
+    case ambiguousMessageFraming
+    case invalidTransferEncoding(String)
+    case invalidChunkSize(String)
+    case invalidChunkTerminator
+    case incompleteChunkedBody
+    case contentTooLarge(actualBytes: Int, maximumBytes: Int)
+    case chunkTrailerSectionTooLarge(maximumBytes: Int)
+    case tooManyChunkTrailers(maximumCount: Int)
     case headerSectionTooLarge(maximumBytes: Int)
     case headerLineTooLarge(name: String?, maximumBytes: Int)
     case tooManyHeaders(maximumCount: Int)
@@ -32,6 +40,30 @@ public enum HTTPParsingError: Error, LocalizedError, Sendable, Equatable {
 
         case .conflictingContentLength(let values):
             return "Conflicting Content-Length values: \(values)"
+
+        case .ambiguousMessageFraming:
+            return "HTTP message contains both Transfer-Encoding and Content-Length"
+
+        case .invalidTransferEncoding(let value):
+            return "Invalid Transfer-Encoding: \(value)"
+
+        case .invalidChunkSize(let value):
+            return "Invalid HTTP chunk size: \(value)"
+
+        case .invalidChunkTerminator:
+            return "HTTP chunk data is not followed by CRLF"
+
+        case .incompleteChunkedBody:
+            return "Chunked HTTP body is incomplete"
+
+        case .contentTooLarge(let actualBytes, let maximumBytes):
+            return "HTTP content exceeds configured maximum: \(actualBytes) > \(maximumBytes)"
+
+        case .chunkTrailerSectionTooLarge(let maximumBytes):
+            return "HTTP chunk trailer section exceeds configured maximum: \(maximumBytes)"
+
+        case .tooManyChunkTrailers(let maximumCount):
+            return "HTTP chunk trailer count exceeds configured maximum: \(maximumCount)"
 
         case .headerSectionTooLarge(let maximumBytes):
             return "HTTP header section exceeds configured maximum: \(maximumBytes)"

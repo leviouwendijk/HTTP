@@ -127,6 +127,16 @@ public extension HTTPRequest {
                 )
             }
 
+            let bodyBytes =
+                parsed.body.utf8.count
+
+            guard bodyBytes <= policies.content.maximumBytes else {
+                throw HTTPValidationError.contentTooLarge(
+                    actualBytes: bodyBytes,
+                    maximumBytes: policies.content.maximumBytes
+                )
+            }
+
             return HTTPRequest(
                 method: method,
                 path: path,

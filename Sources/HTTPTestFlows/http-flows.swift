@@ -18,6 +18,7 @@ enum HTTPFlowSuite: TestFlowRegistry {
         httpResponseBuilderRegressionFlow,
         httpHeaderAccessRegressionFlow,
         httpResponseConstructorRegressionFlow,
+        httpFramingRegressionFlow,
         httpClientIPRegressionFlow
     ]
 }

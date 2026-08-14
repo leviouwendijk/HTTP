@@ -11,6 +11,7 @@ public enum HTTPValidationError: Error, LocalizedError, Sendable, Equatable {
     case forbiddenHeader(String)
     case invalidContentLength(String)
     case contentLengthTooLarge(value: String, maximumBytes: Int)
+    case contentTooLarge(actualBytes: Int, maximumBytes: Int)
     case requestTargetTooLong(maximumBytes: Int)
     case ambiguousRequestTarget(String)
 
@@ -45,6 +46,9 @@ public enum HTTPValidationError: Error, LocalizedError, Sendable, Equatable {
 
         case .contentLengthTooLarge(let value, let maximumBytes):
             return "Content-Length exceeds configured maximum: \(value) > \(maximumBytes)"
+
+        case .contentTooLarge(let actualBytes, let maximumBytes):
+            return "HTTP content exceeds configured maximum: \(actualBytes) > \(maximumBytes)"
 
         case .requestTargetTooLong(let maximumBytes):
             return "HTTP request target exceeds configured maximum: \(maximumBytes)"

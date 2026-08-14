@@ -1,10 +1,10 @@
 public struct HTTPResponsePolicies: Sendable, Hashable, Equatable {
     public let headers: HTTPHeaderPolicy
-    public let content: HTTPContentLengthPolicy
+    public let content: HTTPContentPolicy
 
     public init(
         headers: HTTPHeaderPolicy,
-        content: HTTPContentLengthPolicy
+        content: HTTPContentPolicy
     ) {
         self.headers = headers
         self.content = content
