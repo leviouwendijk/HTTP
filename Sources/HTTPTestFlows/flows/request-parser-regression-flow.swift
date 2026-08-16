@@ -58,7 +58,7 @@ extension HTTPFlowSuite {
             )
         }
 
-        Step("parse request target with query string unchanged") {
+        Step("request model preserves target while separating path and query") {
             let raw = httpRawMessage(
                 headLines: [
                     "GET /search?q=dog%20training&page=2 HTTP/1.1",
@@ -77,9 +77,21 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                request.path,
+                request.target,
                 "/search?q=dog%20training&page=2",
+                "request-parser.query.target"
+            )
+
+            try Expect.equal(
+                request.path,
+                "/search",
                 "request-parser.query.path"
+            )
+
+            try Expect.equal(
+                request.query,
+                "q=dog%20training&page=2",
+                "request-parser.query.query"
             )
         }
 

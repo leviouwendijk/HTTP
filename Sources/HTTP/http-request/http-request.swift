@@ -3,7 +3,22 @@ import Primitives
 
 public struct HTTPRequest: Sendable {
     public let method: HTTPMethod
-    public let path: String
+
+    private let requestTarget:
+        HTTPGrammar.RequestTarget.Output
+
+    public var target: String {
+        requestTarget.raw
+    }
+
+    public var path: String {
+        requestTarget.path
+    }
+
+    public var query: String? {
+        requestTarget.query
+    }
+
     public let headers: HTTPHeaders
     public let body: String
 
@@ -28,7 +43,10 @@ public struct HTTPRequest: Sendable {
         body: String = ""
     ) {
         self.method = method
-        self.path = path
+        self.requestTarget =
+            HTTPGrammar.RequestTarget.Output(
+                raw: path
+            )
         self.headers = headers
         self.body = body
     }

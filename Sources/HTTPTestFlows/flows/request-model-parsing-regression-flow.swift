@@ -61,6 +61,37 @@ extension HTTPFlowSuite {
             )
         }
 
+        Step("programmatic request retains target while exposing routing path and query") {
+            let request = HTTPRequest(
+                method: .get,
+                path:
+                    "/webhook"
+                    + "?hub.mode=subscribe"
+                    + "&hub.challenge=abc123"
+            )
+
+            try Expect.equal(
+                request.target,
+                "/webhook"
+                    + "?hub.mode=subscribe"
+                    + "&hub.challenge=abc123",
+                "request-target.programmatic.target"
+            )
+
+            try Expect.equal(
+                request.path,
+                "/webhook",
+                "request-target.programmatic.path"
+            )
+
+            try Expect.equal(
+                request.query,
+                "hub.mode=subscribe"
+                    + "&hub.challenge=abc123",
+                "request-target.programmatic.query"
+            )
+        }
+
         Step("request parser parses syntax without method or version policy") {
             let raw = httpRawMessage(
                 headLines: [

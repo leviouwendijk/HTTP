@@ -16,7 +16,7 @@ public extension HTTPRequest {
             let requestLine = parsed.requestLine
             let methodString = requestLine.method
             let requestTarget = requestLine.requestTarget
-            let path = requestTarget.raw
+            let target = requestTarget.raw
             let version = requestLine.version
 
             guard let method = HTTPMethod(
@@ -35,7 +35,7 @@ public extension HTTPRequest {
 
             do {
                 try HTTPWireValidation.validateRequestTarget(
-                    path
+                    target
                 )
             } catch HTTPWireValidationError.invalidRequestTarget(let target) {
                 throw HTTPValidationError.invalidRequestTarget(
@@ -139,7 +139,7 @@ public extension HTTPRequest {
 
             return HTTPRequest(
                 method: method,
-                path: path,
+                path: target,
                 headers: headers,
                 body: parsed.body
             )
