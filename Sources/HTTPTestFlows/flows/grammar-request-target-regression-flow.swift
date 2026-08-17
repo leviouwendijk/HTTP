@@ -25,13 +25,13 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                output?.path,
+                output?.path.raw,
                 "/auth/session",
                 "request-target.path"
             )
 
             try Expect.isNil(
-                output?.query,
+                output?.query?.raw,
                 "request-target.query-absent"
             )
         }
@@ -48,13 +48,13 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                output?.path,
+                output?.path.raw,
                 "/search",
                 "request-target.query.path"
             )
 
             try Expect.equal(
-                output?.query,
+                output?.query?.raw,
                 "q=dog%20training&page=2",
                 "request-target.query.value"
             )
@@ -66,13 +66,13 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                output?.path,
+                output?.path.raw,
                 "/search",
                 "request-target.first-separator.path"
             )
 
             try Expect.equal(
-                output?.query,
+                output?.query?.raw,
                 "first?second",
                 "request-target.first-separator.query"
             )
@@ -84,13 +84,13 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                output?.path,
+                output?.path.raw,
                 "/search",
                 "request-target.empty-query.path"
             )
 
             try Expect.equal(
-                output?.query,
+                output?.query?.raw,
                 "",
                 "request-target.empty-query.value"
             )

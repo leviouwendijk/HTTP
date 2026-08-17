@@ -2,35 +2,53 @@ import Parsing
 
 public extension HTTPGrammar {
     struct RequestTarget: Parser {
-        public struct Output: Sendable, Equatable {
+        public struct Output:
+            Sendable,
+            Equatable
+        {
             public let raw: String
-            public let path: String
-            public let query: String?
+            public let path: HTTPPath
+            public let query: HTTPQuery?
 
             public init(
                 raw: String
             ) {
                 self.raw = raw
 
-                guard let queryIndex = raw.firstIndex(
-                    of: "?"
-                ) else {
-                    self.path = raw
+                guard let queryIndex =
+                    raw.firstIndex(
+                        of: "?"
+                    )
+                else {
+                    self.path =
+                        HTTPPath(
+                            raw: raw
+                        )
+
                     self.query = nil
+
                     return
                 }
 
-                self.path = String(
-                    raw[..<queryIndex]
-                )
+                self.path =
+                    HTTPPath(
+                        raw:
+                            String(
+                                raw[..<queryIndex]
+                            )
+                    )
 
-                self.query = String(
-                    raw[
-                        raw.index(
-                            after: queryIndex
-                        )...
-                    ]
-                )
+                self.query =
+                    HTTPQuery(
+                        raw:
+                            String(
+                                raw[
+                                    raw.index(
+                                        after: queryIndex
+                                    )...
+                                ]
+                            )
+                    )
             }
         }
 
@@ -39,23 +57,30 @@ public extension HTTPGrammar {
         public func parse(
             _ cursor: Cursor
         ) -> ParseResult<Output> {
-            let parser = TakeWhile(
-                where: {
-                    !$0.isWhitespace
-                },
-                minimumCount: 1,
-                expectation: "HTTP request target"
-            )
+            let parser =
+                TakeWhile(
+                    where: {
+                        !$0.isWhitespace
+                    },
+                    minimumCount: 1,
+                    expectation:
+                        "HTTP request target"
+                )
 
             switch parser.parse(
                 cursor
             ) {
-            case .failure(let diagnostic):
+            case .failure(
+                let diagnostic
+            ):
                 return .failure(
                     diagnostic
                 )
 
-            case .success(let raw, let next):
+            case .success(
+                let raw,
+                let next
+            ):
                 return .success(
                     Output(
                         raw: raw
@@ -68,17 +93,21 @@ public extension HTTPGrammar {
         public static func parse(
             _ input: String
         ) -> Output? {
-            let parser = RequestTarget()
-                .skip(
-                    EndOfInput()
-                )
+            let parser =
+                RequestTarget()
+                    .skip(
+                        EndOfInput()
+                    )
 
             switch parser.parse(
                 Cursor(
                     input
                 )
             ) {
-            case .success(let output, _):
+            case .success(
+                let output,
+                _
+            ):
                 return output
 
             case .failure:

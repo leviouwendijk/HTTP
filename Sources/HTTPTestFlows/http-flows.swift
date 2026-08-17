@@ -7,6 +7,7 @@ enum HTTPFlowSuite: TestFlowRegistry {
         httpProtocolBaselineRegressionFlow,
         httpRequestLineGrammarRegressionFlow,
         httpRequestTargetGrammarRegressionFlow,
+        httpQueryParametersRegressionFlow,
         httpHeaderFieldGrammarRegressionFlow,
         httpStatusLineGrammarRegressionFlow,
         httpRequestModelParsingRegressionFlow,

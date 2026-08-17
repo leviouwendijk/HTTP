@@ -34,7 +34,7 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                request.path,
+                request.path.raw,
                 "/health",
                 "request-parser.simple.path"
             )
@@ -83,13 +83,13 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                request.path,
+                request.path.raw,
                 "/search",
                 "request-parser.query.path"
             )
 
             try Expect.equal(
-                request.query,
+                request.query?.raw,
                 "q=dog%20training&page=2",
                 "request-parser.query.query"
             )
@@ -119,7 +119,7 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                request.path,
+                request.path.raw,
                 "/api/items",
                 "request-parser.post.path"
             )

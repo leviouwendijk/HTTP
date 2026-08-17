@@ -11,11 +11,11 @@ public struct HTTPRequest: Sendable {
         requestTarget.raw
     }
 
-    public var path: String {
+    public var path: HTTPPath {
         requestTarget.path
     }
 
-    public var query: String? {
+    public var query: HTTPQuery? {
         requestTarget.query
     }
 

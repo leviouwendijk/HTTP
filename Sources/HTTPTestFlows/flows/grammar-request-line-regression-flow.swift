@@ -49,13 +49,13 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                output?.requestTarget.path,
+                output?.requestTarget.path.raw,
                 "/search",
                 "request-line.request-target.path"
             )
 
             try Expect.equal(
-                output?.requestTarget.query,
+                output?.requestTarget.query?.raw,
                 "q=dog%20training&page=2",
                 "request-line.request-target.query"
             )

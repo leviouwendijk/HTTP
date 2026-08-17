@@ -39,7 +39,7 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
             )
         }
 
-        let path = target.path
+        let path = target.path.raw
 
         if rejectBackslash && path.contains("\\") {
             throw HTTPValidationError.ambiguousRequestTarget(

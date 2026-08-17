@@ -79,13 +79,13 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                request.path,
+                request.path.raw,
                 "/webhook",
                 "request-target.programmatic.path"
             )
 
             try Expect.equal(
-                request.query,
+                request.query?.raw,
                 "hub.mode=subscribe"
                     + "&hub.challenge=abc123",
                 "request-target.programmatic.query"
@@ -251,7 +251,7 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                request.path,
+                request.path.raw,
                 "/a//b",
                 "request-model-parsing.policy.permissive-target"
             )
@@ -456,7 +456,7 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                request.path,
+                request.path.raw,
                 "programmatic-value",
                 "request-model-parsing.programmatic.path"
             )
