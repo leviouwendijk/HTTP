@@ -191,6 +191,112 @@ extension HTTPFlowSuite {
             )
         }
 
+        Step("chunked decoder streams decoded chunks before terminal completion") {
+            var decoder = HTTPChunkedBody.Decoder(
+                maximumDecodedBytes: 1.kib
+            )
+
+            let firstEvents = try decoder.receiveStreaming(
+                Data(
+                    "4\r\nWiki\r\n".utf8
+                )
+            )
+
+            try Expect.equal(
+                firstEvents.count,
+                1,
+                "chunked.streaming.first-event-count"
+            )
+
+            guard let firstEvent = firstEvents.first,
+                  case .body(let firstBody) = firstEvent
+            else {
+                try Expect.true(
+                    false,
+                    "chunked.streaming.first-body"
+                )
+
+                return
+            }
+
+            try Expect.equal(
+                String(
+                    decoding: firstBody,
+                    as: UTF8.self
+                ),
+                "Wiki",
+                "chunked.streaming.first-body-value"
+            )
+
+            let finalEvents = try decoder.receiveStreaming(
+                Data(
+                    "5\r\npedia\r\n0\r\nX-Trace: done\r\n\r\n".utf8
+                )
+            )
+
+            try Expect.equal(
+                finalEvents.count,
+                2,
+                "chunked.streaming.final-event-count"
+            )
+
+            guard finalEvents.count == 2 else {
+                return
+            }
+
+            guard case .body(let finalBody) = finalEvents[0] else {
+                try Expect.true(
+                    false,
+                    "chunked.streaming.final-body"
+                )
+
+                return
+            }
+
+            try Expect.equal(
+                String(
+                    decoding: finalBody,
+                    as: UTF8.self
+                ),
+                "pedia",
+                "chunked.streaming.final-body-value"
+            )
+
+            guard case .complete(let trailers, let remainder) = finalEvents[1] else {
+                try Expect.true(
+                    false,
+                    "chunked.streaming.complete"
+                )
+
+                return
+            }
+
+            try Expect.equal(
+                trailers.get(
+                    "X-Trace"
+                ),
+                "done",
+                "chunked.streaming.trailers"
+            )
+
+            try Expect.equal(
+                remainder.count,
+                0,
+                "chunked.streaming.remainder"
+            )
+
+            let output = try decoder.finish()
+
+            try Expect.equal(
+                String(
+                    decoding: output.body,
+                    as: UTF8.self
+                ),
+                "Wikipedia",
+                "chunked.streaming.buffered-output"
+            )
+        }
+
         Step("chunked decoder survives every two-window split") {
             let wire = Data(
                 "4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n".utf8

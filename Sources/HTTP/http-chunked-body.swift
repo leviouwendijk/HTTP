@@ -22,6 +22,19 @@ public enum HTTPChunkedBody {
         case complete(Output)
     }
 
+    /// One incremental result produced while decoding chunked transfer framing.
+    ///
+    /// Body events contain decoded entity-body bytes with chunk framing removed.
+    /// Complete carries only terminal metadata; `finish()` still returns the
+    /// complete buffered Output for compatibility with existing consumers.
+    public enum StreamEvent: Sendable, Equatable {
+        case body(Data)
+        case complete(
+            trailers: HTTPHeaders,
+            remainder: Data
+        )
+    }
+
     public struct Decoder: Sendable {
         private enum State: Sendable {
             case size
@@ -68,6 +81,37 @@ public enum HTTPChunkedBody {
             return try process()
         }
 
+        /// Decode newly received wire bytes and return body/terminal events.
+        ///
+        /// Use either this method or `receive(_:)` consistently for one decoder.
+        /// The decoder continues retaining the full decoded body so `finish()`
+        /// and the existing buffered API preserve their current behavior.
+        public mutating func receiveStreaming(
+            _ data: Data
+        ) throws -> [StreamEvent] {
+            if case .complete(_) = state {
+                return []
+            }
+
+            if !data.isEmpty {
+                buffer.append(
+                    data
+                )
+            }
+
+            var events: [StreamEvent] = []
+
+            _ = try process(
+                onEvent: { event in
+                    events.append(
+                        event
+                    )
+                }
+            )
+
+            return events
+        }
+
         public func finish() throws -> Output {
             guard case .complete(let output) = state else {
                 throw HTTPParsingError.incompleteChunkedBody
@@ -76,7 +120,9 @@ public enum HTTPChunkedBody {
             return output
         }
 
-        private mutating func process() throws -> Progress {
+        private mutating func process(
+            onEvent: ((StreamEvent) -> Void)? = nil
+        ) throws -> Progress {
             while true {
                 switch state {
                 case .size:
@@ -143,9 +189,17 @@ public enum HTTPChunkedBody {
                         throw HTTPParsingError.invalidChunkTerminator
                     }
 
+                    let chunk = buffer.subdata(
+                        in: buffer.startIndex..<dataEnd
+                    )
+
                     decoded.append(
-                        buffer.subdata(
-                            in: buffer.startIndex..<dataEnd
+                        chunk
+                    )
+
+                    onEvent?(
+                        .body(
+                            chunk
                         )
                     )
 
@@ -185,6 +239,13 @@ public enum HTTPChunkedBody {
                             body: decoded,
                             trailers: trailers,
                             remainder: buffer
+                        )
+
+                        onEvent?(
+                            .complete(
+                                trailers: trailers,
+                                remainder: buffer
+                            )
                         )
 
                         state = .complete(
