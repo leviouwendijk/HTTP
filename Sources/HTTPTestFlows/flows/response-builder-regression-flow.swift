@@ -14,7 +14,7 @@ extension HTTPFlowSuite {
             "regression"
         ]
     ) {
-        Step("build text response with status line headers separator and newline-terminated body") {
+        Step("build text response with status line headers separator and exact body") {
             let response = HTTPResponse.text(
                 "hello",
                 status: .ok,
@@ -52,13 +52,19 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                wire.hasSuffix("hello\n"),
+                wire.hasSuffix("hello"),
                 true,
-                "response-builder.body-newline"
+                "response-builder.body-exact"
+            )
+
+            try Expect.equal(
+                wire.hasSuffix("hello\n"),
+                false,
+                "response-builder.body-no-implicit-newline"
             )
         }
 
-        Step("builder sets Content-Length after appending terminal newline") {
+        Step("builder sets Content-Length from exact body bytes") {
             let response = HTTPResponse.text(
                 "hello",
                 status: .ok
@@ -70,12 +76,12 @@ extension HTTPFlowSuite {
 
             try Expect.contains(
                 wire,
-                "Content-Length: 6",
-                "response-builder.content-length-with-appended-newline"
+                "Content-Length: 5",
+                "response-builder.content-length-exact-body"
             )
         }
 
-        Step("builder does not append duplicate newline when body already has one") {
+        Step("builder preserves an explicit terminal newline already present in body") {
             let response = HTTPResponse.text(
                 "hello\n",
                 status: .ok
@@ -140,13 +146,13 @@ extension HTTPFlowSuite {
 
             try Expect.equal(
                 parsed.header("Content-Length"),
-                "6",
+                "5",
                 "response-builder.roundtrip.content-length"
             )
 
             try Expect.equal(
                 parsed.body,
-                "hello\n",
+                "hello",
                 "response-builder.roundtrip.body"
             )
         }

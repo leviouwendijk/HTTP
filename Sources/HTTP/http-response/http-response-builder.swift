@@ -5,13 +5,8 @@ public struct HTTPResponseBuilder {
         _ response: HTTPResponse
     ) throws -> String {
         var headers = HTTPHeaders(response.headers)
-        var body = response.body
-
-        if !body.isEmpty && !body.hasSuffix("\n") {
-            body.append("\n")
-        }
-
-        let bodyData = body.data(using: .utf8) ?? Data()
+        let body = response.body
+        let bodyData = Data(body.utf8)
 
         headers.set(
             HTTPConstants.contentLengthHeader,
