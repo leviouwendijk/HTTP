@@ -12,6 +12,7 @@ public enum HTTPValidationError: Error, LocalizedError, Sendable, Equatable {
     case invalidContentLength(String)
     case contentLengthTooLarge(value: String, maximumBytes: Int)
     case contentTooLarge(actualBytes: Int, maximumBytes: Int)
+    case missingContentType(method: HTTPMethod)
     case requestTargetTooLong(maximumBytes: Int)
     case ambiguousRequestTarget(String)
 
@@ -49,6 +50,9 @@ public enum HTTPValidationError: Error, LocalizedError, Sendable, Equatable {
 
         case .contentTooLarge(let actualBytes, let maximumBytes):
             return "HTTP content exceeds configured maximum: \(actualBytes) > \(maximumBytes)"
+
+        case .missingContentType(let method):
+            return "HTTP \(method.rawValue) request requires Content-Type"
 
         case .requestTargetTooLong(let maximumBytes):
             return "HTTP request target exceeds configured maximum: \(maximumBytes)"

@@ -127,6 +127,20 @@ public extension HTTPRequest {
                 )
             }
 
+            if method == .query {
+                let contentType = headers.contentType?.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+                guard let contentType,
+                      !contentType.isEmpty
+                else {
+                    throw HTTPValidationError.missingContentType(
+                        method: method
+                    )
+                }
+            }
+
             let bodyBytes =
                 parsed.body.utf8.count
 

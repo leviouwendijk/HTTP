@@ -37,7 +37,7 @@ public actor HTTPStatusRegistry: Sendable {
             return custom
         }
         
-        return HTTPStatus.defaultFor(code: code)
+        return HTTPStatus.resolve(code: code)
     }
     
     /// Check if a custom status is registered
