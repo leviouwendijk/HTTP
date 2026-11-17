@@ -186,5 +186,70 @@ extension HTTPFlowSuite {
                 "response-builder.explicit-content-type-roundtrip"
             )
         }
+
+        Step("build binary response with byte-exact body and byte content length") {
+            let bytes = Data([0x89, 0x50, 0x4E, 0x47, 0x00, 0xFF, 0xFE, 0x0D, 0x0A])
+
+            let response = HTTPResponse(
+                status: .ok,
+                headers: [
+                    "Content-Type": "image/png"
+                ],
+                bodyData: bytes
+            )
+
+            let wire = HTTPResponseBuilder.buildData(
+                response
+            )
+
+            try Expect.equal(
+                wire.suffix(bytes.count),
+                bytes,
+                "response-builder.binary-body-exact"
+            )
+
+            let head = String(
+                decoding: wire.prefix(wire.count - bytes.count),
+                as: UTF8.self
+            )
+
+            try Expect.contains(
+                head,
+                "Content-Length: \(bytes.count)",
+                "response-builder.binary-content-length"
+            )
+
+            try Expect.equal(
+                head.hasSuffix("\r\n\r\n"),
+                true,
+                "response-builder.binary-head-terminated"
+            )
+        }
+
+        Step("text body and bodyData stay in sync") {
+            var response = HTTPResponse.text(
+                "héllo"
+            )
+
+            try Expect.equal(
+                response.bodyData,
+                Data("héllo".utf8),
+                "response-builder.text-to-bytes"
+            )
+
+            response.body = "bye"
+
+            try Expect.equal(
+                response.bodyData,
+                Data("bye".utf8),
+                "response-builder.body-setter-updates-bytes"
+            )
+
+            try Expect.equal(
+                String(decoding: HTTPResponseBuilder.buildData(response), as: UTF8.self),
+                HTTPResponseBuilder.build(response),
+                "response-builder.data-matches-string-for-text"
+            )
+        }
     }
 }

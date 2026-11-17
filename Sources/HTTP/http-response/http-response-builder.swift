@@ -4,9 +4,40 @@ public struct HTTPResponseBuilder {
     public static func buildValidated(
         _ response: HTTPResponse
     ) throws -> String {
+        try validatedHead(response) + response.body
+    }
+
+    /// Wire bytes: validated head followed by `bodyData` unchanged, so binary bodies survive.
+    public static func buildValidatedData(
+        _ response: HTTPResponse
+    ) throws -> Data {
+        var wire = Data(
+            try validatedHead(response).utf8
+        )
+        wire.append(
+            response.bodyData
+        )
+        return wire
+    }
+
+    public static func buildData(
+        _ response: HTTPResponse
+    ) -> Data {
+        do {
+            return try buildValidatedData(response)
+        } catch {
+            return Data(
+                fallbackInternalServerError().utf8
+            )
+        }
+    }
+
+    /// Status line and headers, terminated by the blank line that precedes the body.
+    private static func validatedHead(
+        _ response: HTTPResponse
+    ) throws -> String {
         var headers = HTTPHeaders(response.headers)
-        let body = response.body
-        let bodyData = Data(body.utf8)
+        let bodyData = response.bodyData
 
         headers.set(
             HTTPConstants.contentLengthHeader,
@@ -49,7 +80,7 @@ public struct HTTPResponseBuilder {
             separator: HTTPConstants.crlf
         )
 
-        return headerString + HTTPConstants.crlf + body
+        return headerString + HTTPConstants.crlf
     }
 
     public static func build(
