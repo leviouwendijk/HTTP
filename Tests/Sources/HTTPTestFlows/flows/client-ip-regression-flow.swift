@@ -90,20 +90,57 @@ extension HTTPFlowSuite {
             )
         }
 
-        Step("prefers X-Real-IP over X-Forwarded-For") {
+        Step("public traffic through moxy, proxy-box and malinois resolves to the client") {
+            // malinois nginx: X-Real-IP $remote_addr (proxy-box), XFF appended.
             let request = HTTPRequest(
                 method: .get,
                 path: "/",
                 headers: [
-                    "X-Forwarded-For": "6.6.6.6",
-                    "X-Real-IP": "198.51.100.44"
+                    "X-Forwarded-For": "203.0.113.10, 10.100.0.1, 10.90.20.15",
+                    "X-Real-IP": "10.90.20.15"
                 ]
             )
 
             try Expect.equal(
                 try request.parseClientIP().rawValue,
-                "198.51.100.44",
-                "client-ip.xrip.precedence"
+                "203.0.113.10",
+                "client-ip.chain.public"
+            )
+        }
+
+        Step("connector forwarding to captcher resolves to the original client") {
+            // connector sets XFF and X-Real-IP to the client; malinois overwrites
+            // X-Real-IP with connector's address and appends it to XFF.
+            let request = HTTPRequest(
+                method: .get,
+                path: "/",
+                headers: [
+                    "X-Forwarded-For": "198.51.100.7, 10.90.30.69",
+                    "X-Real-IP": "10.90.30.69"
+                ]
+            )
+
+            try Expect.equal(
+                try request.parseClientIP().rawValue,
+                "198.51.100.7",
+                "client-ip.chain.internal-forward"
+            )
+        }
+
+        Step("an all-internal chain resolves to the leftmost entry") {
+            let request = HTTPRequest(
+                method: .get,
+                path: "/",
+                headers: [
+                    "X-Forwarded-For": "10.60.10.147, 10.90.30.69",
+                    "X-Real-IP": "10.90.30.69"
+                ]
+            )
+
+            try Expect.equal(
+                try request.parseClientIP().rawValue,
+                "10.60.10.147",
+                "client-ip.chain.lan"
             )
         }
 
@@ -182,8 +219,8 @@ extension HTTPFlowSuite {
                 method: .get,
                 path: "/",
                 headers: [
-                    "X-Real-IP": "not-an-ip",
-                    "X-Forwarded-For": "198.51.100.46"
+                    "X-Forwarded-For": "not-an-ip",
+                    "X-Real-IP": "198.51.100.46"
                 ]
             )
 

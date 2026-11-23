@@ -95,18 +95,15 @@ extension HTTPRequest {
         }
     }
 
-    /// The client address as recorded by the nearest trusted proxy.
+    /// The client address as recorded by our proxies.
     ///
-    /// Order: `X-Real-IP` (overwritten by our edge), then `X-Forwarded-For` read
-    /// right to left, then the last `Forwarded for=`. Each proxy appends the address
-    /// it saw, so entries left of the first public hop are client-written. Private,
-    /// loopback and link-local hops are our own proxies and are skipped.
+    /// `X-Forwarded-For` is read right to left: each proxy appends the address it saw,
+    /// so entries left of the nearest public hop were written by the client. Private,
+    /// loopback, CGNAT and link-local hops are our own proxies and are skipped. When
+    /// every hop is internal (a LAN caller), the leftmost entry is the one that caller
+    /// supplied. Our nginx overwrites `X-Real-IP` with its direct peer (the previous
+    /// proxy), so it is only a fallback when `X-Forwarded-For` is absent.
     private var _forwardedClientIPCandidate: String? {
-        if let xrip = header("X-Real-IP"),
-           let cleaned = Self._cleanIPToken(xrip) {
-            return cleaned
-        }
-
         let chain = _forwardedClientIPChainCandidates
 
         if let nearestPublic = chain.last(where: {
@@ -115,8 +112,13 @@ extension HTTPRequest {
             return nearestPublic
         }
 
-        if let nearest = chain.last {
-            return nearest
+        if let leftmost = chain.first {
+            return leftmost
+        }
+
+        if let xrip = header("X-Real-IP"),
+           let cleaned = Self._cleanIPToken(xrip) {
+            return cleaned
         }
 
         if let fwd = header("Forwarded"),
