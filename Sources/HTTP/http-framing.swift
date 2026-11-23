@@ -160,13 +160,6 @@ public struct HTTPContentPolicy: Sendable, Hashable, Equatable {
     }
 }
 
-@available(
-    *,
-    deprecated,
-    renamed: "HTTPContentPolicy"
-)
-public typealias HTTPContentLengthPolicy = HTTPContentPolicy
-
 public enum HTTPFraming {
     public enum Body: Sendable, Hashable, Equatable {
         case none
@@ -177,13 +170,6 @@ public enum HTTPFraming {
     }
 
     public static let defaultContentPolicy = HTTPContentPolicy.default
-
-    @available(
-        *,
-        deprecated,
-        renamed: "defaultContentPolicy"
-    )
-    public static let defaultContentLengthPolicy = defaultContentPolicy
 
     public static func extractContentLength(
         from headerData: Data,
@@ -214,23 +200,35 @@ public enum HTTPFraming {
 
         var headers = HTTPHeaders()
 
-        for line in lines {
-            guard !line.isEmpty,
-                  let separatorIndex = line.firstIndex(
-                    of: Character(
-                        HTTPConstants.headerSeparator
-                    )
-                  )
-            else {
+        for line in lines.dropFirst() {
+            guard !line.isEmpty else {
+                continue
+            }
+
+            // Same rules as the request validator, so framing and parsing agree on
+            // where a message ends: no obs-fold, no whitespace around the field name.
+            if let first = line.unicodeScalars.first,
+               first == " " || first == "\t" {
+                throw HTTPParsingError.malformedHeaders
+            }
+
+            guard let separatorIndex = line.firstIndex(
+                of: Character(
+                    HTTPConstants.headerSeparator
+                )
+            ) else {
                 continue
             }
 
             let name = String(
                 line[..<separatorIndex]
             )
-            .trimmingCharacters(
-                in: .whitespaces
-            )
+
+            if name.unicodeScalars.contains(where: {
+                $0 == " " || $0 == "\t"
+            }) {
+                throw HTTPParsingError.malformedHeaders
+            }
 
             guard name.caseInsensitiveCompare(
                 HTTPConstants.contentLengthHeader

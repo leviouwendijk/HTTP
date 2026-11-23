@@ -5,18 +5,25 @@ public extension HTTPRequest {
         public let requestLineSource: String
         public let requestLine: HTTPGrammar.RequestLine.Output
         public let headerFields: [HTTPGrammar.HeaderField.Output]
-        public let body: String
+        public let bodyData: Data
+
+        public var body: String {
+            String(
+                decoding: bodyData,
+                as: UTF8.self
+            )
+        }
 
         public init(
             requestLineSource: String,
             requestLine: HTTPGrammar.RequestLine.Output,
             headerFields: [HTTPGrammar.HeaderField.Output],
-            body: String
+            bodyData: Data
         ) {
             self.requestLineSource = requestLineSource
             self.requestLine = requestLine
             self.headerFields = headerFields
-            self.body = body
+            self.bodyData = bodyData
         }
     }
 
@@ -47,23 +54,39 @@ public extension HTTPRequest {
         public func parse(
             _ raw: String
         ) throws -> Parsed {
+            try parse(
+                Data(
+                    raw.utf8
+                )
+            )
+        }
+
+        /// Parses a complete request. The head must be UTF-8; the body is kept as bytes.
+        public func parse(
+            _ raw: Data
+        ) throws -> Parsed {
             guard let separatorRange = raw.range(
-                of: HTTPConstants.crlfCrLf
+                of: Data(
+                    HTTPConstants.crlfCrLf.utf8
+                )
             ) else {
                 throw HTTPParsingError.incompleteRequest
             }
 
-            let head = String(
-                raw[..<separatorRange.lowerBound]
-            )
-
-            guard head.utf8.count <= maximumHeaderBytes else {
+            guard separatorRange.lowerBound - raw.startIndex <= maximumHeaderBytes else {
                 throw HTTPParsingError.headerSectionTooLarge(
                     maximumBytes: maximumHeaderBytes
                 )
             }
 
-            let body = String(
+            guard let head = String(
+                data: raw[raw.startIndex..<separatorRange.lowerBound],
+                encoding: .utf8
+            ) else {
+                throw HTTPParsingError.malformedHeaders
+            }
+
+            let bodyData = Data(
                 raw[separatorRange.upperBound...]
             )
 
@@ -104,42 +127,19 @@ public extension HTTPRequest {
             )
 
             for line in headerLines {
+                // obs-fold (RFC 9112 §5.2): a line starting with whitespace continues
+                // the previous field. Rejected rather than folded or read as a new field.
+                if let first = line.unicodeScalars.first,
+                   first == " " || first == "\t" {
+                    throw HTTPParsingError.malformedHeaders
+                }
+
                 guard line.utf8.count <= maximumHeaderLineBytes else {
                     throw HTTPParsingError.headerLineTooLarge(
                         name: nil,
                         maximumBytes: maximumHeaderLineBytes
                     )
                 }
-
-                // Previous header-field syntax extraction:
-                // guard let separatorIndex = line.firstIndex(
-                //     of: Character(
-                //         HTTPConstants.headerSeparator
-                //     )
-                // ) else {
-                //     throw HTTPParsingError.malformedHeaders
-                // }
-                //
-                // let name = String(
-                //     line[..<separatorIndex]
-                // )
-                // .trimmingCharacters(
-                //     in: .whitespaces
-                // )
-                //
-                // let value = String(
-                //     line[line.index(after: separatorIndex)...]
-                // )
-                // .trimmingCharacters(
-                //     in: .whitespaces
-                // )
-                //
-                // headers.append(
-                //     HTTPHeader(
-                //         name,
-                //         value
-                //     )
-                // )
 
                 guard let headerField = HTTPGrammar.HeaderField.parse(
                     line
@@ -156,13 +156,25 @@ public extension HTTPRequest {
                 requestLineSource: requestLineSource,
                 requestLine: requestLine,
                 headerFields: headerFields,
-                body: body
+                bodyData: bodyData
             )
         }
     }
 
     init(
         parsing raw: String,
+        policies: HTTPRequestPolicies = HTTPPolicies.request.default
+    ) throws {
+        try self.init(
+            parsing: Data(
+                raw.utf8
+            ),
+            policies: policies
+        )
+    }
+
+    init(
+        parsing raw: Data,
         policies: HTTPRequestPolicies = HTTPPolicies.request.default
     ) throws {
         let parsed = try Parser(

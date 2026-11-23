@@ -53,8 +53,6 @@ public struct HTTPStatus: Hashable, Sendable, Equatable {
     public static let preconditionFailed = HTTPStatus(code: 412, reason: "Precondition Failed")
     public static let contentTooLarge = HTTPStatus(code: 413, reason: "Content Too Large")
 
-    @available(*, deprecated, renamed: "contentTooLarge")
-    public static let payloadTooLarge = contentTooLarge
     public static let uriTooLong = HTTPStatus(code: 414, reason: "URI Too Long")
     public static let unsupportedMediaType = HTTPStatus(code: 415, reason: "Unsupported Media Type")
     public static let rangeNotSatisfiable = HTTPStatus(code: 416, reason: "Range Not Satisfiable")
@@ -64,8 +62,6 @@ public struct HTTPStatus: Hashable, Sendable, Equatable {
     public static let misdirectedRequest = HTTPStatus(code: 421, reason: "Misdirected Request")
     public static let unprocessableContent = HTTPStatus(code: 422, reason: "Unprocessable Content")
 
-    @available(*, deprecated, renamed: "unprocessableContent")
-    public static let unprocessableEntity = unprocessableContent
     public static let locked = HTTPStatus(code: 423, reason: "Locked")
     public static let failedDependency = HTTPStatus(code: 424, reason: "Failed Dependency")
     public static let tooEarly = HTTPStatus(code: 425, reason: "Too Early")

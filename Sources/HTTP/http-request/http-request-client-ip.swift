@@ -95,26 +95,28 @@ extension HTTPRequest {
         }
     }
 
+    /// The client address as recorded by the nearest trusted proxy.
+    ///
+    /// Order: `X-Real-IP` (overwritten by our edge), then `X-Forwarded-For` read
+    /// right to left, then the last `Forwarded for=`. Each proxy appends the address
+    /// it saw, so entries left of the first public hop are client-written. Private,
+    /// loopback and link-local hops are our own proxies and are skipped.
     private var _forwardedClientIPCandidate: String? {
-        if let xff = header("X-Forwarded-For"),
-           let first = xff.split(separator: ",", maxSplits: 1).first {
-            let ip = first.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-
-            if let cleaned = Self._cleanIPToken(ip) {
-                return cleaned
-            }
+        if let xrip = header("X-Real-IP"),
+           let cleaned = Self._cleanIPToken(xrip) {
+            return cleaned
         }
 
-        if let xrip = header("X-Real-IP") {
-            let ip = xrip.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
+        let chain = _forwardedClientIPChainCandidates
 
-            if let cleaned = Self._cleanIPToken(ip) {
-                return cleaned
-            }
+        if let nearestPublic = chain.last(where: {
+            !Self._isInternalAddress($0)
+        }) {
+            return nearestPublic
+        }
+
+        if let nearest = chain.last {
+            return nearest
         }
 
         if let fwd = header("Forwarded"),
@@ -141,10 +143,11 @@ extension HTTPRequest {
             .compactMap(Self._cleanIPToken)
     }
 
+    /// The `for=` value of the last forwarded element (the hop nearest to us).
     private static func _parseForwardedFor(
         _ header: String
     ) -> String? {
-        for part in header.split(separator: ",") {
+        for part in header.split(separator: ",").reversed() {
             for keyValue in part.split(separator: ";") {
                 let token = keyValue.trimmingCharacters(
                     in: .whitespacesAndNewlines
@@ -162,6 +165,40 @@ extension HTTPRequest {
         }
 
         return nil
+    }
+
+    /// Private (RFC 1918, ULA), CGNAT, loopback and link-local addresses.
+    private static func _isInternalAddress(
+        _ value: String
+    ) -> Bool {
+        let lowercased = value.lowercased()
+
+        if lowercased.contains(":") {
+            return lowercased == "::1"
+                || lowercased.hasPrefix("fc")
+                || lowercased.hasPrefix("fd")
+                || lowercased.hasPrefix("fe8")
+                || lowercased.hasPrefix("fe9")
+                || lowercased.hasPrefix("fea")
+                || lowercased.hasPrefix("feb")
+        }
+
+        let octets = value
+            .split(separator: ".")
+            .compactMap { UInt8($0) }
+
+        guard octets.count == 4 else {
+            return false
+        }
+
+        switch (octets[0], octets[1]) {
+        case (10, _), (127, _):
+            return true
+        case (172, 16...31), (192, 168), (169, 254), (100, 64...127):
+            return true
+        default:
+            return false
+        }
     }
 
     private static func _cleanIPToken(

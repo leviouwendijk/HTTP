@@ -27,7 +27,9 @@ public extension HTTPRequest {
                 )
             }
 
-            guard version == HTTPConstants.httpVersion else {
+            guard version == HTTPConstants.httpVersion
+                || version == HTTPConstants.httpVersion10
+            else {
                 throw HTTPValidationError.unsupportedHTTPVersion(
                     version
                 )
@@ -51,9 +53,9 @@ public extension HTTPRequest {
             var seenSingletonHeaders = Set<String>()
 
             for headerField in parsed.headerFields {
-                let name = headerField.name.trimmingCharacters(
-                    in: .whitespaces
-                )
+                // The name is validated as received: RFC 9112 §5.1 requires rejecting
+                // whitespace between the field name and the colon, never trimming it.
+                let name = headerField.name
 
                 let value = headerField.value.trimmingCharacters(
                     in: .whitespaces
@@ -127,6 +129,14 @@ public extension HTTPRequest {
                 )
             }
 
+            if version == HTTPConstants.httpVersion,
+               policies.headers.requireHost,
+               headers.get(
+                   HTTPConstants.hostHeader
+               ) == nil {
+                throw HTTPValidationError.missingHost
+            }
+
             if method == .query {
                 let contentType = headers.contentType?.trimmingCharacters(
                     in: .whitespacesAndNewlines
@@ -142,7 +152,7 @@ public extension HTTPRequest {
             }
 
             let bodyBytes =
-                parsed.body.utf8.count
+                parsed.bodyData.count
 
             guard bodyBytes <= policies.content.maximumBytes else {
                 throw HTTPValidationError.contentTooLarge(
@@ -155,7 +165,8 @@ public extension HTTPRequest {
                 method: method,
                 path: target,
                 headers: headers,
-                body: parsed.body
+                bodyData: parsed.bodyData,
+                version: version
             )
         }
     }

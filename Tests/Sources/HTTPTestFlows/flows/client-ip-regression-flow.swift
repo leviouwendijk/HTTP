@@ -40,7 +40,7 @@ extension HTTPFlowSuite {
             }
         }
 
-        Step("parses first X-Forwarded-For address") {
+        Step("uses the nearest public X-Forwarded-For hop, skipping our proxies") {
             let request = HTTPRequest(
                 method: .get,
                 path: "/",
@@ -54,7 +54,7 @@ extension HTTPFlowSuite {
             try Expect.equal(
                 parsed.rawValue,
                 "203.0.113.10",
-                "client-ip.xff.first.raw"
+                "client-ip.xff.nearest-public.raw"
             )
 
             try Expect.equal(
@@ -71,6 +71,39 @@ extension HTTPFlowSuite {
                     "10.90.20.15"
                 ],
                 "client-ip.xff.chain"
+            )
+        }
+
+        Step("ignores client-written X-Forwarded-For entries left of the nearest public hop") {
+            let request = HTTPRequest(
+                method: .get,
+                path: "/",
+                headers: [
+                    "X-Forwarded-For": "6.6.6.6, 203.0.113.10, 10.100.0.1"
+                ]
+            )
+
+            try Expect.equal(
+                try request.parseClientIP().rawValue,
+                "203.0.113.10",
+                "client-ip.xff.spoofed-prefix-ignored"
+            )
+        }
+
+        Step("prefers X-Real-IP over X-Forwarded-For") {
+            let request = HTTPRequest(
+                method: .get,
+                path: "/",
+                headers: [
+                    "X-Forwarded-For": "6.6.6.6",
+                    "X-Real-IP": "198.51.100.44"
+                ]
+            )
+
+            try Expect.equal(
+                try request.parseClientIP().rawValue,
+                "198.51.100.44",
+                "client-ip.xrip.precedence"
             )
         }
 
@@ -149,8 +182,8 @@ extension HTTPFlowSuite {
                 method: .get,
                 path: "/",
                 headers: [
-                    "X-Forwarded-For": "not-an-ip",
-                    "X-Real-IP": "198.51.100.46"
+                    "X-Real-IP": "not-an-ip",
+                    "X-Forwarded-For": "198.51.100.46"
                 ]
             )
 

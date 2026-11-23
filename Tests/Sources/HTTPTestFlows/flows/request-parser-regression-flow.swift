@@ -163,12 +163,12 @@ extension HTTPFlowSuite {
             )
         }
 
-        Step("trim ordinary whitespace around header keys and values") {
+        Step("trim ordinary whitespace around header values") {
             let raw = httpRawMessage(
                 headLines: [
                     "GET /trim HTTP/1.1",
-                    " Host :   localhost   ",
-                    " X-Trace-ID :   abc-123   "
+                    "Host:   localhost   ",
+                    "X-Trace-ID:   abc-123   "
                 ]
             )
 
@@ -187,6 +187,75 @@ extension HTTPFlowSuite {
                 "abc-123",
                 "request-parser.trim.trace-id"
             )
+        }
+
+        Step("reject whitespace between header name and colon") {
+            try Expect.throwsError(
+                "request-parser.name-whitespace"
+            ) {
+                _ = try HTTPRequest(
+                    parsing: httpRawMessage(
+                        headLines: [
+                            "POST /len HTTP/1.1",
+                            "Host: localhost",
+                            "Content-Length : 5"
+                        ]
+                    ) + "hello"
+                )
+            }
+        }
+
+        Step("reject a missing Host on HTTP/1.1") {
+            try Expect.throwsError(
+                "request-parser.missing-host"
+            ) {
+                _ = try HTTPRequest(
+                    parsing: httpRawMessage(
+                        headLines: [
+                            "GET / HTTP/1.1"
+                        ]
+                    )
+                )
+            }
+        }
+
+        Step("keep a binary body as bytes") {
+            var raw = Data(
+                "POST /upload HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\n\r\n".utf8
+            )
+            raw.append(
+                contentsOf: [0xFF, 0xFE, 0x00, 0x01]
+            )
+
+            let request = try HTTPRequest(
+                parsing: raw
+            )
+
+            try Expect.equal(
+                request.bodyData,
+                Data([0xFF, 0xFE, 0x00, 0x01]),
+                "request-parser.binary-body"
+            )
+        }
+
+        Step("request target policy rejects dot segments and encoded separators only") {
+            let policy = HTTPRequestTargetPolicy.default
+
+            for target in ["/a/../b", "/a/./b", "/a/%2e%2E/b", "/a%2fb", "/a%5Cb", "/a\\b"] {
+                try Expect.throwsError(
+                    "request-parser.target.rejects \(target)"
+                ) {
+                    try policy.validate(
+                        target
+                    )
+                }
+            }
+
+            for target in ["/file%2Ejson", "/a/b.c", "/a/...", "/"] {
+                try policy.validate(
+                    target
+                )
+            }
         }
 
         Step("lookup request headers case-insensitively") {

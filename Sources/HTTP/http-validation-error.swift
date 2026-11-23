@@ -15,6 +15,7 @@ public enum HTTPValidationError: Error, LocalizedError, Sendable, Equatable {
     case missingContentType(method: HTTPMethod)
     case requestTargetTooLong(maximumBytes: Int)
     case ambiguousRequestTarget(String)
+    case missingHost
 
     public var errorDescription: String? {
         switch self {
@@ -59,6 +60,9 @@ public enum HTTPValidationError: Error, LocalizedError, Sendable, Equatable {
 
         case .ambiguousRequestTarget(let target):
             return "Ambiguous HTTP request target: \(target)"
+
+        case .missingHost:
+            return "HTTP/1.1 request requires a Host header"
         }
     }
 }

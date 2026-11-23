@@ -1,30 +1,61 @@
 import Foundation
 
+/// Serializes responses with `Content-Length` framing.
+///
+/// Pass the request method so bodyless responses frame correctly (RFC 9110 §6.4.1, §8.6):
+/// - 1xx and 204: no `Content-Length`, no body.
+/// - 304: no body; an explicit `Content-Length` is kept.
+/// - HEAD: no body; `Content-Length` is the explicit header if set, else the body's length.
+/// `Transfer-Encoding` is always removed, since the body is never chunked.
 public struct HTTPResponseBuilder {
     public static func buildValidated(
-        _ response: HTTPResponse
+        _ response: HTTPResponse,
+        for method: HTTPMethod? = nil
     ) throws -> String {
-        try validatedHead(response) + response.body
+        String(
+            decoding: try buildValidatedData(
+                response,
+                for: method
+            ),
+            as: UTF8.self
+        )
     }
 
     /// Wire bytes: validated head followed by `bodyData` unchanged, so binary bodies survive.
     public static func buildValidatedData(
-        _ response: HTTPResponse
+        _ response: HTTPResponse,
+        for method: HTTPMethod? = nil
     ) throws -> Data {
+        let framing = Framing(
+            status: response.status,
+            method: method
+        )
+
         var wire = Data(
-            try validatedHead(response).utf8
+            try validatedHead(
+                response,
+                framing: framing
+            ).utf8
         )
-        wire.append(
-            response.bodyData
-        )
+
+        if framing.sendsBody {
+            wire.append(
+                response.bodyData
+            )
+        }
+
         return wire
     }
 
     public static func buildData(
-        _ response: HTTPResponse
+        _ response: HTTPResponse,
+        for method: HTTPMethod? = nil
     ) -> Data {
         do {
-            return try buildValidatedData(response)
+            return try buildValidatedData(
+                response,
+                for: method
+            )
         } catch {
             return Data(
                 fallbackInternalServerError().utf8
@@ -32,19 +63,72 @@ public struct HTTPResponseBuilder {
         }
     }
 
+    private struct Framing {
+        let sendsBody: Bool
+        let sendsContentLength: Bool
+        let keepsExplicitContentLength: Bool
+
+        init(
+            status: HTTPStatus,
+            method: HTTPMethod?
+        ) {
+            let code = status.code
+
+            if (100...199).contains(code) || code == 204 {
+                sendsBody = false
+                sendsContentLength = false
+                keepsExplicitContentLength = false
+            } else if code == 304 {
+                sendsBody = false
+                sendsContentLength = false
+                keepsExplicitContentLength = true
+            } else if method == .head {
+                sendsBody = false
+                sendsContentLength = true
+                keepsExplicitContentLength = true
+            } else {
+                sendsBody = true
+                sendsContentLength = true
+                keepsExplicitContentLength = false
+            }
+        }
+    }
+
     /// Status line and headers, terminated by the blank line that precedes the body.
     private static func validatedHead(
-        _ response: HTTPResponse
+        _ response: HTTPResponse,
+        framing: Framing
     ) throws -> String {
         var headers = HTTPHeaders(response.headers)
         let bodyData = response.bodyData
 
-        headers.set(
-            HTTPConstants.contentLengthHeader,
-            "\(bodyData.count)"
+        headers.remove(
+            HTTPConstants.transferEncodingHeader
         )
 
-        if headers.get(HTTPConstants.contentTypeHeader) == nil {
+        let explicitContentLength = headers.get(
+            HTTPConstants.contentLengthHeader
+        )
+
+        if framing.keepsExplicitContentLength,
+           let explicitContentLength {
+            headers.set(
+                HTTPConstants.contentLengthHeader,
+                explicitContentLength
+            )
+        } else if framing.sendsContentLength {
+            headers.set(
+                HTTPConstants.contentLengthHeader,
+                "\(bodyData.count)"
+            )
+        } else {
+            headers.remove(
+                HTTPConstants.contentLengthHeader
+            )
+        }
+
+        if framing.sendsContentLength,
+           headers.get(HTTPConstants.contentTypeHeader) == nil {
             headers.set(
                 HTTPConstants.contentTypeHeader,
                 HTTPConstants.defaultContentType
@@ -84,10 +168,14 @@ public struct HTTPResponseBuilder {
     }
 
     public static func build(
-        _ response: HTTPResponse
+        _ response: HTTPResponse,
+        for method: HTTPMethod? = nil
     ) -> String {
         do {
-            return try buildValidated(response)
+            return try buildValidated(
+                response,
+                for: method
+            )
         } catch {
             return fallbackInternalServerError()
         }
@@ -112,40 +200,3 @@ public struct HTTPResponseBuilder {
         ) + HTTPConstants.crlf + body
     }
 }
-
-// public struct HTTPResponseBuilder {
-//     public static func build(_ response: HTTPResponse) -> String {
-//         var headers = HTTPHeaders(response.headers)
-//         var body = response.body
-//         if !body.isEmpty && !body.hasSuffix("\n") {
-//             body.append("\n")
-//         }
-
-//         // Calculate and set Content-Length
-//         let bodyData = body.data(using: .utf8) ?? Data()
-//         headers.set(HTTPConstants.contentLengthHeader, "\(bodyData.count)")
-
-//         // print("Response body before newline: '\(response.body.debugDescription)'")                                                 
-//         // print("Response body after newline: '\(body.debugDescription)'")
-//         // print("Content-Length will be: \(bodyData.count)")
-        
-//         // Set default Content-Type if not provided
-//         if headers.get(HTTPConstants.contentTypeHeader) == nil {
-//             headers.set(HTTPConstants.contentTypeHeader, HTTPConstants.defaultContentType)
-//         }
-        
-//         // Build status line
-//         let statusLine = "\(HTTPConstants.httpVersion) \(response.status.code) \(response.status.reason)"
-        
-//         // Build header lines (deterministic order)
-//         let headerLines = headers.lines()
-        
-//         // Assemble response
-//         var lines: [String] = [statusLine]
-//         lines.append(contentsOf: headerLines)
-//         lines.append("")  // blank line
-        
-//         let headerString = lines.joined(separator: HTTPConstants.crlf)
-//         return headerString + HTTPConstants.crlf + body
-//     }
-// }

@@ -348,8 +348,8 @@ extension HTTPFlowSuite {
             let raw = httpRawMessage(
                 headLines: [
                     "GET / HTTP/1.1",
-                    " Host :   localhost   ",
-                    " X-Trace-ID :   alpha:beta   ",
+                    "Host:   localhost   ",
+                    "X-Trace-ID :   alpha:beta   ",
                 ]
             )
 
@@ -364,15 +364,15 @@ extension HTTPFlowSuite {
             )
 
             try Expect.equal(
-                parsed.headerFields[0].name,
-                " Host ",
-                "request-model-parsing.raw-headers.name"
-            )
-
-            try Expect.equal(
                 parsed.headerFields[0].value,
                 "   localhost   ",
                 "request-model-parsing.raw-headers.value"
+            )
+
+            try Expect.equal(
+                parsed.headerFields[1].name,
+                "X-Trace-ID ",
+                "request-model-parsing.raw-headers.name"
             )
 
             try Expect.equal(
@@ -381,25 +381,29 @@ extension HTTPFlowSuite {
                 "request-model-parsing.raw-headers.colon-value"
             )
 
-            let request = try HTTPRequest.Validator().validate(
-                parsed
-            )
+            try Expect.throwsError(
+                "request-model-parsing.validator-rejects-space-before-colon"
+            ) {
+                _ = try HTTPRequest.Validator().validate(
+                    parsed
+                )
+            }
+        }
 
-            try Expect.equal(
-                request.header(
-                    "Host"
-                ),
-                "localhost",
-                "request-model-parsing.normalized-headers.host"
-            )
-
-            try Expect.equal(
-                request.header(
-                    "X-Trace-ID"
-                ),
-                "alpha:beta",
-                "request-model-parsing.normalized-headers.trace"
-            )
+        Step("request parser rejects obs-fold header lines") {
+            try Expect.throwsError(
+                "request-model-parsing.obs-fold"
+            ) {
+                _ = try HTTPRequest.Parser().parse(
+                    httpRawMessage(
+                        headLines: [
+                            "GET / HTTP/1.1",
+                            "Host: localhost",
+                            " Content-Length: 5",
+                        ]
+                    )
+                )
+            }
         }
 
         Step("request parser and validator expose distinct error taxonomies") {

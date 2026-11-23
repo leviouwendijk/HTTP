@@ -2,13 +2,18 @@ import Foundation
 
 public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
     public let maximumBytes: Int
-    public let rejectEncodedDotSegments: Bool
+
+    /// Reject `.` and `..` path segments, literal or percent-encoded (`%2e`).
+    public let rejectDotSegments: Bool
     public let rejectDoubleSlash: Bool
+
+    /// Reject `\\` and the encoded separators `%2f` and `%5c`, which decode to a
+    /// different path than the one routed.
     public let rejectBackslash: Bool
 
     public init(
         maximumBytes: Int = 8.kib,
-        rejectEncodedDotSegments: Bool = true,
+        rejectDotSegments: Bool = true,
         rejectDoubleSlash: Bool = true,
         rejectBackslash: Bool = true
     ) {
@@ -16,7 +21,7 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
             0,
             maximumBytes
         )
-        self.rejectEncodedDotSegments = rejectEncodedDotSegments
+        self.rejectDotSegments = rejectDotSegments
         self.rejectDoubleSlash = rejectDoubleSlash
         self.rejectBackslash = rejectBackslash
     }
@@ -25,7 +30,7 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
 
     public static let permissive = Self(
         maximumBytes: 64.kib,
-        rejectEncodedDotSegments: false,
+        rejectDotSegments: false,
         rejectDoubleSlash: false,
         rejectBackslash: false
     )
@@ -41,7 +46,8 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
 
         let path = target.path.raw
 
-        if rejectBackslash && path.contains("\\") {
+        if rejectBackslash,
+           containsSeparatorAmbiguity(path) {
             throw HTTPValidationError.ambiguousRequestTarget(
                 target.raw
             )
@@ -55,8 +61,8 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
             )
         }
 
-        if rejectEncodedDotSegments,
-           containsEncodedDotSegment(path) {
+        if rejectDotSegments,
+           containsDotSegment(path) {
             throw HTTPValidationError.ambiguousRequestTarget(
                 target.raw
             )
@@ -73,14 +79,34 @@ public struct HTTPRequestTargetPolicy: Sendable, Hashable, Equatable {
         )
     }
 
-    private func containsEncodedDotSegment(
+    private func containsSeparatorAmbiguity(
         _ path: String
     ) -> Bool {
         let lowercased = path.lowercased()
 
-        return lowercased.contains("%2e")
-            || lowercased.contains("%2e%2e")
-            || lowercased.contains(".%2e")
-            || lowercased.contains("%2e.")
+        return lowercased.contains("\\")
+            || lowercased.contains("%2f")
+            || lowercased.contains("%5c")
+    }
+
+    private func containsDotSegment(
+        _ path: String
+    ) -> Bool {
+        path
+            .split(
+                separator: "/",
+                omittingEmptySubsequences: false
+            )
+            .contains { segment in
+                let decoded = segment
+                    .lowercased()
+                    .replacingOccurrences(
+                        of: "%2e",
+                        with: "."
+                    )
+
+                return decoded == "."
+                    || decoded == ".."
+            }
     }
 }

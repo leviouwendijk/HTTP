@@ -14,10 +14,31 @@ extension HTTPFlowSuite {
             "regression",
         ]
     ) {
+        Step("request parser accepts HTTP/1.0 without keep-alive") {
+            let request = try HTTPRequest(
+                parsing: httpRawMessage(
+                    headLines: [
+                        "GET /health HTTP/1.0",
+                    ]
+                )
+            )
+
+            try Expect.equal(
+                request.version,
+                "HTTP/1.0",
+                "protocol-baseline.request.http10.version"
+            )
+
+            try Expect.false(
+                request.keepAlive,
+                "protocol-baseline.request.http10.closes"
+            )
+        }
+
         Step("request parser rejects unsupported HTTP version") {
             let raw = httpRawMessage(
                 headLines: [
-                    "GET /health HTTP/1.0",
+                    "GET /health HTTP/2.0",
                     "Host: localhost",
                 ]
             )

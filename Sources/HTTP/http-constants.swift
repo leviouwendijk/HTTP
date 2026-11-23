@@ -5,6 +5,9 @@ public enum HTTPConstants {
     public static let crlf = "\r\n"
     public static let headerSeparator = ":"
     public static let httpVersion = "HTTP/1.1"
+    public static let httpVersion10 = "HTTP/1.0"
+    public static let hostHeader = "Host"
+    public static let connectionHeader = "Connection"
     
     public static let contentLengthHeader = "Content-Length"
     public static let transferEncodingHeader = "Transfer-Encoding"

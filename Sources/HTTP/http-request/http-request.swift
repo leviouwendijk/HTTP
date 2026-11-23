@@ -20,7 +20,20 @@ public struct HTTPRequest: Sendable {
     }
 
     public let headers: HTTPHeaders
-    public let body: String
+
+    /// Protocol version from the request line (`HTTP/1.1` or `HTTP/1.0`).
+    public let version: String
+
+    /// Body bytes as received. Binary payloads live here.
+    public let bodyData: Data
+
+    /// UTF-8 view of `bodyData`, for textual bodies.
+    public var body: String {
+        String(
+            decoding: bodyData,
+            as: UTF8.self
+        )
+    }
 
     public init(
         method: HTTPMethod,
@@ -40,7 +53,26 @@ public struct HTTPRequest: Sendable {
         method: HTTPMethod,
         path: String,
         headers: HTTPHeaders = HTTPHeaders(),
-        body: String = ""
+        body: String = "",
+        version: String = HTTPConstants.httpVersion
+    ) {
+        self.init(
+            method: method,
+            path: path,
+            headers: headers,
+            bodyData: Data(
+                body.utf8
+            ),
+            version: version
+        )
+    }
+
+    public init(
+        method: HTTPMethod,
+        path: String,
+        headers: HTTPHeaders = HTTPHeaders(),
+        bodyData: Data,
+        version: String = HTTPConstants.httpVersion
     ) {
         self.method = method
         self.requestTarget =
@@ -48,7 +80,61 @@ public struct HTTPRequest: Sendable {
                 raw: path
             )
         self.headers = headers
-        self.body = body
+        self.bodyData = bodyData
+        self.version = version
+    }
+
+    /// Whether the connection may carry another request after this one.
+    ///
+    /// HTTP/1.1 persists unless `Connection: close`; HTTP/1.0 closes unless `Connection: keep-alive`.
+    public var keepAlive: Bool {
+        let tokens = connectionTokens
+
+        if version == HTTPConstants.httpVersion10 {
+            return tokens.contains(
+                "keep-alive"
+            ) && !tokens.contains(
+                "close"
+            )
+        }
+
+        return !tokens.contains(
+            "close"
+        )
+    }
+
+    /// Whether the client waits for `100 Continue` before sending the body.
+    public var expectsContinue: Bool {
+        guard let expect = header(
+            "Expect"
+        ) else {
+            return false
+        }
+
+        return expect
+            .trimmingCharacters(
+                in: .whitespaces
+            )
+            .lowercased() == "100-continue"
+    }
+
+    private var connectionTokens: Set<String> {
+        Set(
+            headerValues(
+                "Connection"
+            )
+            .flatMap {
+                $0.split(
+                    separator: ","
+                )
+            }
+            .map {
+                $0.trimmingCharacters(
+                    in: .whitespaces
+                )
+                .lowercased()
+            }
+        )
     }
 
     public func bearerToken() -> String? {
@@ -101,15 +187,9 @@ extension HTTPRequest {
         _ type: T.Type,
         using decoder: JSONDecoder = HTTPJSONCoding.current.decoder()
     ) throws -> T {
-        guard let data = body.data(
-            using: .utf8
-        ) else {
-            throw HTTPParsingError.malformedHeaders
-        }
-
-        return try decoder.decode(
+        try decoder.decode(
             T.self,
-            from: data
+            from: bodyData
         )
     }
 
@@ -128,15 +208,9 @@ extension HTTPRequest {
         as type: T.Type,
         using decoder: JSONDecoder = HTTPJSONCoding.current.decoder()
     ) throws -> T {
-        guard let data = body.data(
-            using: .utf8
-        ) else {
-            throw HTTPParsingError.malformedHeaders
-        }
-
         let json = try decoder.decode(
             [String: JSONValue].self,
-            from: data
+            from: bodyData
         )
 
         guard let value = json[key] else {
@@ -157,15 +231,9 @@ extension HTTPRequest {
         _ keys: [String],
         using decoder: JSONDecoder = HTTPJSONCoding.current.decoder()
     ) throws -> [String: JSONValue] {
-        guard let data = body.data(
-            using: .utf8
-        ) else {
-            throw HTTPParsingError.malformedHeaders
-        }
-
         let json = try decoder.decode(
             [String: JSONValue].self,
-            from: data
+            from: bodyData
         )
 
         var result: [String: JSONValue] = [:]

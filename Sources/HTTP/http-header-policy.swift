@@ -7,12 +7,16 @@ public struct HTTPHeaderPolicy: Sendable, Hashable, Equatable {
     public let singletonHeaderNames: Set<String>
     public let rejectTransferEncoding: Bool
 
+    /// Reject HTTP/1.1 requests without a Host header (RFC 9112 §3.2).
+    public let requireHost: Bool
+
     public init(
         maximumHeaderBytes: Int = 32.kib,
         maximumHeaderLineBytes: Int = 8.kib,
         maximumHeaderCount: Int = 100,
         singletonHeaderNames: Set<String> = [],
-        rejectTransferEncoding: Bool = false
+        rejectTransferEncoding: Bool = false,
+        requireHost: Bool = false
     ) {
         self.maximumHeaderBytes = max(
             0,
@@ -32,6 +36,7 @@ public struct HTTPHeaderPolicy: Sendable, Hashable, Equatable {
             }
         )
         self.rejectTransferEncoding = rejectTransferEncoding
+        self.requireHost = requireHost
     }
 }
 
@@ -77,7 +82,8 @@ extension HTTPHeaderPolicy {
                     "access-control-request-method",
                     "access-control-request-headers",
                 ],
-                rejectTransferEncoding: true
+                rejectTransferEncoding: true,
+                requireHost: true
             )
         }
     }
@@ -94,25 +100,5 @@ extension HTTPHeaderPolicy {
                 rejectTransferEncoding: false
             )
         }
-    }
-}
-
-extension HTTPHeaderPolicy {
-    @available(
-        *,
-        deprecated,
-        message: "Use HTTPHeaderPolicy.request.default instead."
-    )
-    public static var requestDefault: Self {
-        request.default
-    }
-
-    @available(
-        *,
-        deprecated,
-        message: "Use HTTPHeaderPolicy.response.default instead."
-    )
-    public static var responseDefault: Self {
-        response.default
     }
 }
