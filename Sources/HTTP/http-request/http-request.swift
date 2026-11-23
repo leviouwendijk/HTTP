@@ -27,6 +27,12 @@ public struct HTTPRequest: Sendable {
     /// Body bytes as received. Binary payloads live here.
     public let bodyData: Data
 
+    /// Address of the socket peer, set by the server.
+    public private(set) var peerAddress: String?
+
+    /// Client address resolved from the peer and trusted proxies, set by the server.
+    public private(set) var clientAddress: String?
+
     /// UTF-8 view of `bodyData`, for textual bodies.
     public var body: String {
         String(
@@ -82,6 +88,22 @@ public struct HTTPRequest: Sendable {
         self.headers = headers
         self.bodyData = bodyData
         self.version = version
+    }
+
+    /// A copy carrying the socket peer and the client address resolved through `trustedProxies`.
+    public func resolvingClient(
+        peer: String,
+        trustedProxies: HTTPTrustedProxies
+    ) -> HTTPRequest {
+        var copy = self
+        copy.peerAddress = HTTPTrustedProxies.normalize(
+            peer
+        )
+        copy.clientAddress = trustedProxies.resolveClient(
+            peer: peer,
+            headers: headers
+        )
+        return copy
     }
 
     /// Whether the connection may carry another request after this one.

@@ -2,10 +2,27 @@ import Foundation
 import HTTP
 import TestFlows
 
+private func resolved(
+    peer: String,
+    trusting trusted: HTTPTrustedProxies,
+    headers: [String: String]
+) -> String? {
+    HTTPRequest(
+        method: .get,
+        path: "/",
+        headers: headers
+    )
+    .resolvingClient(
+        peer: peer,
+        trustedProxies: trusted
+    )
+    .clientIP
+}
+
 extension HTTPFlowSuite {
     static let httpClientIPRegressionFlow = TestFlow(
         "http.client-ip.regression",
-        title: "HTTPRequest parses trusted forwarded client IP headers",
+        title: "Client IP resolves from the socket peer through trusted proxies",
         tags: [
             "http",
             "request",
@@ -15,224 +32,205 @@ extension HTTPFlowSuite {
             "regression"
         ]
     ) {
-        Step("safe defaults expose no direct client IP") {
+        Step("a request that did not come through a server has no client IP") {
             let request = HTTPRequest(
                 method: .get,
                 path: "/",
-                headers: [:]
+                headers: [
+                    "X-Forwarded-For": "203.0.113.10"
+                ]
             )
 
             try Expect.isNil(
                 request.clientIP,
-                "client-ip.default.clientIP"
-            )
-
-            try Expect.equal(
-                request.clientIPChain,
-                [],
-                "client-ip.default.clientIPChain"
+                "client-ip.unresolved.nil"
             )
 
             try Expect.throwsError(
-                "client-ip.default.parseClientIP.throws"
+                "client-ip.unresolved.parse-throws"
             ) {
                 _ = try request.parseClientIP()
             }
         }
 
-        Step("uses the nearest public X-Forwarded-For hop, skipping our proxies") {
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "X-Forwarded-For": "203.0.113.10, 10.100.0.1, 10.90.20.15"
-                ]
-            )
-
-            let parsed = try request.parseClientIP()
-
+        Step("an untrusted peer is the client and its headers are ignored") {
             try Expect.equal(
-                parsed.rawValue,
-                "203.0.113.10",
-                "client-ip.xff.nearest-public.raw"
+                resolved(
+                    peer: "198.51.100.9",
+                    trusting: .loopback,
+                    headers: [
+                        "X-Forwarded-For": "6.6.6.6",
+                        "X-Real-IP": "6.6.6.6"
+                    ]
+                ),
+                "198.51.100.9",
+                "client-ip.untrusted-peer"
             )
 
             try Expect.equal(
-                request.forwardedClientIP,
-                "203.0.113.10",
-                "client-ip.xff.compat"
-            )
-
-            try Expect.equal(
-                request.forwardedClientIPChain,
-                [
-                    "203.0.113.10",
-                    "10.100.0.1",
-                    "10.90.20.15"
-                ],
-                "client-ip.xff.chain"
-            )
-        }
-
-        Step("ignores client-written X-Forwarded-For entries left of the nearest public hop") {
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "X-Forwarded-For": "6.6.6.6, 203.0.113.10, 10.100.0.1"
-                ]
-            )
-
-            try Expect.equal(
-                try request.parseClientIP().rawValue,
-                "203.0.113.10",
-                "client-ip.xff.spoofed-prefix-ignored"
+                resolved(
+                    peer: "10.60.10.147",
+                    trusting: .loopback,
+                    headers: [
+                        "X-Forwarded-For": "6.6.6.6"
+                    ]
+                ),
+                "10.60.10.147",
+                "client-ip.untrusted-lan-peer"
             )
         }
 
         Step("public traffic through moxy, proxy-box and malinois resolves to the client") {
-            // malinois nginx: X-Real-IP $remote_addr (proxy-box), XFF appended.
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "X-Forwarded-For": "203.0.113.10, 10.100.0.1, 10.90.20.15",
-                    "X-Real-IP": "10.90.20.15"
-                ]
-            )
-
+            // Service behind malinois nginx on loopback; nginx appends to XFF.
             try Expect.equal(
-                try request.parseClientIP().rawValue,
+                resolved(
+                    peer: "127.0.0.1",
+                    trusting: try HTTPTrustedProxies([
+                        "127.0.0.1",
+                        "10.90.20.15",
+                        "10.100.0.0/24",
+                    ]),
+                    headers: [
+                        "X-Forwarded-For": "203.0.113.10, 10.100.0.1, 10.90.20.15",
+                        "X-Real-IP": "10.90.20.15"
+                    ]
+                ),
                 "203.0.113.10",
                 "client-ip.chain.public"
             )
         }
 
-        Step("connector forwarding to captcher resolves to the original client") {
-            // connector sets XFF and X-Real-IP to the client; malinois overwrites
-            // X-Real-IP with connector's address and appends it to XFF.
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "X-Forwarded-For": "198.51.100.7, 10.90.30.69",
-                    "X-Real-IP": "10.90.30.69"
-                ]
-            )
-
+        Step("client-written entries left of the first untrusted hop are ignored") {
             try Expect.equal(
-                try request.parseClientIP().rawValue,
-                "198.51.100.7",
-                "client-ip.chain.internal-forward"
+                resolved(
+                    peer: "127.0.0.1",
+                    trusting: try HTTPTrustedProxies([
+                        "127.0.0.1",
+                        "10.90.20.15",
+                    ]),
+                    headers: [
+                        "X-Forwarded-For": "6.6.6.6, 203.0.113.10, 10.90.20.15"
+                    ]
+                ),
+                "203.0.113.10",
+                "client-ip.chain.spoofed-prefix"
             )
         }
 
-        Step("an all-internal chain resolves to the leftmost entry") {
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "X-Forwarded-For": "10.60.10.147, 10.90.30.69",
-                    "X-Real-IP": "10.90.30.69"
-                ]
-            )
-
+        Step("nginx realip: loopback trust is enough once nginx resolves the client") {
+            // realip on malinois rewrites $remote_addr, so it appends the client itself.
             try Expect.equal(
-                try request.parseClientIP().rawValue,
-                "10.60.10.147",
-                "client-ip.chain.lan"
+                resolved(
+                    peer: "127.0.0.1",
+                    trusting: .loopback,
+                    headers: [
+                        "X-Forwarded-For": "203.0.113.10, 10.100.0.1, 203.0.113.10",
+                        "X-Real-IP": "203.0.113.10"
+                    ]
+                ),
+                "203.0.113.10",
+                "client-ip.chain.realip"
             )
         }
 
-        Step("falls back to X-Real-IP when X-Forwarded-For is absent") {
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "X-Real-IP": "198.51.100.44"
-                ]
-            )
-
-            let parsed = try request.parseClientIP()
-
+        Step("a trusted peer without X-Forwarded-For falls back to X-Real-IP, then itself") {
             try Expect.equal(
-                parsed.rawValue,
+                resolved(
+                    peer: "127.0.0.1",
+                    trusting: .loopback,
+                    headers: [
+                        "X-Real-IP": "198.51.100.44"
+                    ]
+                ),
                 "198.51.100.44",
-                "client-ip.x-real-ip.raw"
+                "client-ip.trusted.x-real-ip"
             )
-        }
-
-        Step("falls back to Forwarded for value when legacy headers are absent") {
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "Forwarded": #"for="198.51.100.45";proto=https;host=api.depaix.systems"#
-                ]
-            )
-
-            let parsed = try request.parseClientIP()
 
             try Expect.equal(
-                parsed.rawValue,
-                "198.51.100.45",
-                "client-ip.forwarded.raw"
+                resolved(
+                    peer: "::1",
+                    trusting: .loopback,
+                    headers: [:]
+                ),
+                "::1",
+                "client-ip.trusted.peer"
             )
         }
 
-        Step("cleans bracketed IPv6 from Forwarded header") {
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "Forwarded": #"for="[2001:db8::17]";proto=https"#
-                ]
-            )
-
-            let parsed = try request.parseClientIP()
-
+        Step("peer addresses are normalized before matching") {
             try Expect.equal(
-                parsed.rawValue,
-                "2001:db8::17",
-                "client-ip.forwarded.ipv6"
+                resolved(
+                    peer: "::ffff:127.0.0.1",
+                    trusting: .loopback,
+                    headers: [
+                        "X-Forwarded-For": "[2001:db8::7]:4711"
+                    ]
+                ),
+                "2001:db8::7",
+                "client-ip.normalize.mapped-and-bracketed"
             )
         }
 
-        Step("rejects unspecified addresses") {
-            let request = HTTPRequest(
-                method: .get,
-                path: "/",
-                headers: [
-                    "X-Forwarded-For": "0.0.0.0"
-                ]
+        Step("CIDR ranges match IPv4 and IPv6 and reject malformed input") {
+            let trusted = try HTTPTrustedProxies([
+                "10.100.0.0/24",
+                "fd00::/8",
+            ])
+
+            try Expect.true(
+                trusted.contains("10.100.0.77"),
+                "client-ip.cidr.v4-in"
+            )
+
+            try Expect.false(
+                trusted.contains("10.100.1.1"),
+                "client-ip.cidr.v4-out"
+            )
+
+            try Expect.true(
+                trusted.contains("fd12::1"),
+                "client-ip.cidr.v6-in"
+            )
+
+            try Expect.false(
+                trusted.contains("not-an-ip"),
+                "client-ip.cidr.garbage"
             )
 
             try Expect.throwsError(
-                "client-ip.xff.unspecified.throws"
+                "client-ip.cidr.invalid-prefix"
             ) {
-                _ = try request.parseClientIP()
+                _ = try HTTPTrustedProxies([
+                    "10.0.0.0/33"
+                ])
             }
+
+            try Expect.equal(
+                try HTTPTrustedProxies.parsing(
+                    "127.0.0.1, 10.90.20.15 ,"
+                ),
+                try HTTPTrustedProxies([
+                    "127.0.0.1",
+                    "10.90.20.15",
+                ]),
+                "client-ip.cidr.parsing"
+            )
         }
 
-        Step("does not silently fall back when primary forwarded header is malformed") {
+        Step("parseClientIP validates the resolved address") {
             let request = HTTPRequest(
                 method: .get,
-                path: "/",
-                headers: [
-                    "X-Forwarded-For": "not-an-ip",
-                    "X-Real-IP": "198.51.100.46"
-                ]
+                path: "/"
+            )
+            .resolvingClient(
+                peer: "127.0.0.1",
+                trustedProxies: .loopback
             )
 
-            try Expect.throwsError(
-                "client-ip.xff.invalid-does-not-fallback"
-            ) {
-                _ = try request.parseClientIP()
-            }
-
-            try Expect.isNil(
-                request.forwardedClientIP,
-                "client-ip.xff.invalid.compat-nil"
+            try Expect.equal(
+                try request.client().ipValue,
+                "127.0.0.1",
+                "client-ip.context"
             )
         }
     }
