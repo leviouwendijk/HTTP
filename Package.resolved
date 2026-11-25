@@ -49,7 +49,7 @@
     {
       "identity" : "parsers",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/leviouwendijk/Parsers.git",
+      "location" : "https://github.com/swift-langs/Parsers.git",
       "state" : {
         "branch" : "master",
         "revision" : "a0ede24496d5951f734389590ff5a860ec055035"
@@ -58,7 +58,7 @@
     {
       "identity" : "parsing",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/leviouwendijk/Parsing.git",
+      "location" : "https://github.com/swift-langs/Parsing.git",
       "state" : {
         "branch" : "master",
         "revision" : "13987d064f2bdba63245d62ac90d7b56e10a417a"
